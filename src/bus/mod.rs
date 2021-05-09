@@ -2,12 +2,14 @@ use std::fs::File;
 use std::io::Read;
 
 pub struct MemoryBus {
-    buffer: Vec<u8>,
+    memory: [u8; 0xFFFF],
 }
 
 impl MemoryBus {
     pub fn new(buffer: Vec<u8>) -> Self {
-        Self { buffer }
+        let mut memory: [u8; 0xFFFF] = [0; 0xFFFF];
+        memory[0x8000..(0x8000 + &buffer.len())].copy_from_slice(&buffer[..]);
+        Self { memory }
     }
 
     pub fn from_rom(rom_path: &'static str) -> Self {
@@ -19,10 +21,10 @@ impl MemoryBus {
     }
 
     pub fn read_byte(&self, address: u16) -> u8 {
-        self.buffer[address as usize]
+        self.memory[address as usize]
     }
 
     pub fn write_byte(&mut self, addr: u16, byte: u8) {
-        self.buffer[addr as usize] = byte;
+        self.memory[addr as usize] = byte;
     }
 }

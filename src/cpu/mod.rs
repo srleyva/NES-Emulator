@@ -18,7 +18,7 @@ pub struct CPU {
 impl CPU {
     pub fn new(rom: MemoryBus) -> Self {
         Self {
-            program_counter: 0,
+            program_counter: 0x8000,
             stack_pointer: 0,
             a: 0,
             x: 0,
@@ -113,11 +113,11 @@ mod test {
         let mut cpu = CPU::new(fake_rom());
         let byte = cpu.read_next_byte();
         assert_eq!(byte, 0xa9);
-        assert_eq!(cpu.program_counter, 0x01);
+        assert_eq!(cpu.program_counter, 0x8001);
 
         let byte = cpu.read_next_byte();
         assert_eq!(byte, 0xc0);
-        assert_eq!(cpu.program_counter, 0x02);
+        assert_eq!(cpu.program_counter, 0x8002);
     }
 
     #[test]
