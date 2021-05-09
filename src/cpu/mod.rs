@@ -17,7 +17,7 @@ pub struct CPU {
 
 impl CPU {
     pub fn new(rom: MemoryBus) -> Self {
-        Self {
+        let mut cpu = Self {
             program_counter: 0x8000,
             stack_pointer: 0,
             a: 0,
@@ -25,13 +25,10 @@ impl CPU {
             y: 0,
             processor_status: ProcesssorStatus::default(),
             bus: rom,
-        }
-    }
+        };
 
-    pub fn read_next_byte(&mut self) -> u8 {
-        let byte = self.bus.read_byte(self.program_counter);
-        self.program_counter += 1;
-        byte
+        cpu.reset_cpu();
+        cpu
     }
 
     pub fn start(&mut self) {
@@ -49,12 +46,16 @@ impl CPU {
         }
     }
 
+    /*
+    Instructions
+    */
+
     fn ld(&mut self, instruction: &Instruction) {
         if cfg!(debug_assertions) {
             println!("{}", instruction);
         }
         self.a = match instruction.op_code {
-            0xa9 => self.read_next_byte(),
+            0xa9 => self.immediate(),
             _ => panic!("Unknown!"),
         };
         self.set_negative_and_zero_process_status(self.a);
@@ -76,6 +77,88 @@ impl CPU {
         self.set_negative_and_zero_process_status(self.x);
     }
 
+    /*
+    Addressing
+    Lots of wet code, could be better dried by absracting the addressing and value loading seperately
+    */
+
+    fn immediate(&mut self) -> u8 {
+        self.read_next_byte()
+    }
+
+    fn absolute(&mut self) -> u8 {
+        let addr = self.read_next_word();
+        self.bus.read_byte(addr)
+    }
+
+    fn absolute_x(&mut self) -> u8 {
+        let addr = self.read_next_word().wrapping_add(self.x as u16);
+        self.bus.read_byte(addr)
+    }
+
+    fn absolute_y(&mut self) -> u8 {
+        let addr = self.read_next_word().wrapping_add(self.y as u16);
+        self.bus.read_byte(addr)
+    }
+
+    fn zero_page(&mut self) -> u8 {
+        let addr = self.read_next_byte() as u16;
+        self.bus.read_byte(addr)
+    }
+
+    fn zero_page_x(&mut self) -> u8 {
+        let addr = self.read_next_byte().wrapping_add(self.x) as u16;
+        self.bus.read_byte(addr)
+    }
+
+    fn zero_page_y(&mut self) -> u8 {
+        let addr = self.read_next_byte().wrapping_add(self.y) as u16;
+        self.bus.read_byte(addr)
+    }
+
+    fn indirect(&mut self) -> u8 {
+        let ptr = self.read_next_word();
+        let addr = self.bus.read_byte(ptr) as u16 | (self.bus.read_byte(ptr) as u16) << 8;
+        self.bus.read_byte(addr)
+    }
+
+    fn indirect_x(&mut self) -> u8 {
+        let ptr = self.read_next_byte().wrapping_add(self.x) as u16;
+        let addr =
+            self.bus.read_byte(ptr) as u16 | (self.bus.read_byte(ptr.wrapping_add(1)) as u16) << 8;
+        self.bus.read_byte(addr)
+    }
+
+    fn indirect_y(&mut self) -> u8 {
+        let ptr = self.read_next_byte() as u16;
+        let addr =
+            self.bus.read_byte(ptr) as u16 | (self.bus.read_byte(ptr.wrapping_add(1)) as u16) << 8;
+        self.bus.read_byte(addr.wrapping_add(self.y as u16))
+    }
+
+    /*
+    Helpers
+    */
+
+    pub fn reset_cpu(&mut self) {
+        self.processor_status = ProcesssorStatus::default();
+        self.a = 0x0;
+        self.x = 0x0;
+        self.program_counter = self.bus.read_word(0xFFFC); // Part of the NES Spec
+    }
+
+    pub fn read_next_byte(&mut self) -> u8 {
+        let byte = self.bus.read_byte(self.program_counter);
+        self.program_counter += 1;
+        byte
+    }
+
+    pub fn read_next_word(&mut self) -> u16 {
+        let word = self.bus.read_word(self.program_counter);
+        self.program_counter += 2;
+        word
+    }
+
     fn set_negative_and_zero_process_status(&mut self, int: u8) {
         self.processor_status.set_zero(int == 0);
         self.processor_status
@@ -94,6 +177,7 @@ mod test {
     #[test]
     fn test_end_to_end() {
         let mut cpu = CPU::new(fake_rom());
+        cpu.program_counter = 0x8000;
         cpu.start();
 
         assert_eq!(cpu.x, 0xc1)
@@ -102,6 +186,8 @@ mod test {
     #[test]
     fn test_inx_overflow() {
         let mut cpu = CPU::new(MemoryBus::new(vec![0xe8, 0xe8, 0x00]));
+        // Set the ROM start to default
+        cpu.program_counter = 0x8000;
         cpu.x = 0xff;
         cpu.start();
 
@@ -111,6 +197,9 @@ mod test {
     #[test]
     fn test_read_next_byte() {
         let mut cpu = CPU::new(fake_rom());
+        // Set the ROM start to default
+        cpu.program_counter = 0x8000;
+
         let byte = cpu.read_next_byte();
         assert_eq!(byte, 0xa9);
         assert_eq!(cpu.program_counter, 0x8001);
@@ -123,6 +212,9 @@ mod test {
     #[test]
     fn test_ld() {
         let mut cpu = CPU::new(MemoryBus::new(vec![0xa9, 0xc5, 0x00]));
+        // Set the ROM start to default
+        cpu.program_counter = 0x8000;
+
         cpu.start();
 
         assert_eq!(cpu.a, 0xc5);
@@ -133,6 +225,9 @@ mod test {
     #[test]
     fn test_ld_zero() {
         let mut cpu = CPU::new(MemoryBus::new(vec![0xa9, 0x00, 0x00]));
+        // Set the ROM start to default
+        cpu.program_counter = 0x8000;
+
         cpu.start();
         assert_eq!(cpu.processor_status.get_zero(), true)
     }
@@ -140,6 +235,9 @@ mod test {
     #[test]
     fn test_tax_zero() {
         let mut cpu = CPU::new(MemoryBus::new(vec![0xaa, 0x00]));
+        // Set the ROM start to default
+        cpu.program_counter = 0x8000;
+
         cpu.a = 0x00;
         cpu.start();
         assert_eq!(cpu.x, cpu.a);
@@ -149,6 +247,9 @@ mod test {
     #[test]
     fn test_tax() {
         let mut cpu = CPU::new(MemoryBus::new(vec![0xaa, 0x00]));
+        // Set the ROM start to default
+        cpu.program_counter = 0x8000;
+
         cpu.a = 0x01;
         cpu.start();
         assert_eq!(cpu.x, cpu.a);
