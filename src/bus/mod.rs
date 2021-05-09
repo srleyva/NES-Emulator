@@ -8,7 +8,7 @@ pub struct MemoryBus {
 impl MemoryBus {
     pub fn new(buffer: Vec<u8>) -> Self {
         let mut memory: [u8; 0xFFFF] = [0; 0xFFFF];
-        memory[0x8000..(0x8000 + &buffer.len())].copy_from_slice(&buffer[..]);
+        memory[0x8000..(0x8000 + buffer.len())].copy_from_slice(&buffer[..]);
         Self { memory }
     }
 

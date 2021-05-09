@@ -1,3 +1,8 @@
+extern crate nes;
+
+use nes::start_game;
+use std::env;
+
 fn main() {
-    println!("Hello, world!");
+    start_game("assets/tetris.nes")
 }
