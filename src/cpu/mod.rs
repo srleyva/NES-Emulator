@@ -56,7 +56,14 @@ impl CPU {
         }
         self.a = match instruction.op_code {
             0xa9 => self.immediate(),
-            _ => panic!("Unknown!"),
+            0xa5 => self.zero_page(),
+            0xb5 => self.zero_page_x(),
+            0xad => self.absolute(),
+            0xbd => self.absolute_x(),
+            0xb9 => self.absolute_y(),
+            0xa1 => self.indirect_x(),
+            0xb1 => self.indirect_y(),
+            _ => panic!("Unknown OpCode: {}", instruction.op_code),
         };
         self.set_negative_and_zero_process_status(self.a);
     }
