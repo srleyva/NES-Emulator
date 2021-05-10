@@ -35,7 +35,9 @@ impl CPU {
         loop {
             let instruction = get_instruction_from_opcode(self.read_next_byte());
             match instruction.instruction_type {
-                InstructionType::LD => self.ld(instruction),
+                InstructionType::LDA => self.lda(instruction),
+                InstructionType::LDX => self.ldx(instruction),
+                InstructionType::LDY => self.ldy(instruction),
                 InstructionType::BRK => return,
                 InstructionType::TAX => self.tax(instruction),
                 InstructionType::INC => self.inc(instruction),
@@ -49,7 +51,7 @@ impl CPU {
     Instructions
     */
 
-    fn ld(&mut self, instruction: &Instruction) {
+    fn lda(&mut self, instruction: &Instruction) {
         if cfg!(debug_assertions) {
             println!("{}", instruction);
         }
@@ -72,6 +74,50 @@ impl CPU {
         }
 
         self.set_negative_and_zero_process_status(self.a);
+    }
+
+    fn ldx(&mut self, instruction: &Instruction) {
+        if cfg!(debug_assertions) {
+            println!("{}", instruction);
+        }
+        let addr = match instruction.op_code {
+            0xa2 => self.program_counter,
+            0xa6 => self.zero_page_address(),
+            0xb6 => self.zero_page_y_address(),
+            0xae => self.absolute_address(),
+            0xbe => self.absolute_y_address(),
+            _ => panic!("Unknown OpCode: {}", instruction.op_code),
+        };
+
+        if addr == self.program_counter {
+           self.x = self.read_next_byte(); 
+        } else {
+            self.x = self.bus.read_byte(addr);
+        }
+
+        self.set_negative_and_zero_process_status(self.a);
+    }
+
+    fn ldy(&mut self, instruction: &Instruction) {
+        if cfg!(debug_assertions) {
+            println!("{}", instruction);
+        }
+        let addr = match instruction.op_code {
+            0xa0 => self.program_counter,
+            0xa4 => self.zero_page_address(),
+            0xb4 => self.zero_page_x_address(),
+            0xac => self.absolute_address(),
+            0xbc => self.absolute_x_address(),
+            _ => panic!("Unknown OpCode: {}", instruction.op_code),
+        };
+
+        if addr == self.program_counter {
+           self.y = self.read_next_byte(); 
+        } else {
+            self.y = self.bus.read_byte(addr);
+        }
+
+        self.set_negative_and_zero_process_status(self.y);
     }
 
     fn tax(&mut self, instruction: &Instruction) {
@@ -218,7 +264,7 @@ mod test {
         cpu.program_counter = 0x8000;
         cpu.start();
 
-        // assert_eq!(cpu.x, 0xc1)
+        assert_eq!(cpu.x, 0xc1)
     }
 
     #[test]
