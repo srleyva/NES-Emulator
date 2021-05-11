@@ -58,24 +58,7 @@ impl CPU {
         if cfg!(debug_assertions) {
             println!("{}", instruction);
         }
-        let addr = match instruction.op_code {
-            0xa9 => self.program_counter,
-            0xa5 => self.zero_page_address(),
-            0xb5 => self.zero_page_x_address(),
-            0xad => self.absolute_address(),
-            0xbd => self.absolute_x_address(),
-            0xb9 => self.absolute_y_address(),
-            0xa1 => self.indirect_x_address(),
-            0xb1 => self.indirect_y_address(),
-            _ => panic!("Unknown OpCode: {}", instruction.op_code),
-        };
-
-        if addr == self.program_counter {
-            self.a = self.read_next_byte();
-        } else {
-            self.a = self.bus.read_byte(addr);
-        }
-
+        self.a = self.read_byte(&instruction.memory_addressing_mode);
         self.set_negative_and_zero_process_status(self.a);
     }
 
@@ -83,43 +66,15 @@ impl CPU {
         if cfg!(debug_assertions) {
             println!("{}", instruction);
         }
-        let addr = match instruction.op_code {
-            0xa2 => self.program_counter,
-            0xa6 => self.zero_page_address(),
-            0xb6 => self.zero_page_y_address(),
-            0xae => self.absolute_address(),
-            0xbe => self.absolute_y_address(),
-            _ => panic!("Unknown OpCode: {}", instruction.op_code),
-        };
-
-        if addr == self.program_counter {
-            self.x = self.read_next_byte();
-        } else {
-            self.x = self.bus.read_byte(addr);
-        }
-
-        self.set_negative_and_zero_process_status(self.a);
+        self.x = self.read_byte(&instruction.memory_addressing_mode);
+        self.set_negative_and_zero_process_status(self.x);
     }
 
     fn ldy(&mut self, instruction: &Instruction) {
         if cfg!(debug_assertions) {
             println!("{}", instruction);
         }
-        let addr = match instruction.op_code {
-            0xa0 => self.program_counter,
-            0xa4 => self.zero_page_address(),
-            0xb4 => self.zero_page_x_address(),
-            0xac => self.absolute_address(),
-            0xbc => self.absolute_x_address(),
-            _ => panic!("Unknown OpCode: {}", instruction.op_code),
-        };
-
-        if addr == self.program_counter {
-            self.y = self.read_next_byte();
-        } else {
-            self.y = self.bus.read_byte(addr);
-        }
-
+        self.y = self.read_byte(&instruction.memory_addressing_mode);
         self.set_negative_and_zero_process_status(self.y);
     }
 
@@ -143,18 +98,7 @@ impl CPU {
         if cfg!(debug_assertions) {
             println!("{}", instruction);
         }
-        let addr = match instruction.op_code {
-            0x85 => self.zero_page_address(),
-            0x95 => self.zero_page_x_address(),
-            0x8d => self.absolute_address(),
-            0x9d => self.absolute_x_address(),
-            0x99 => self.absolute_y_address(),
-            0x81 => self.indirect_x_address(),
-            0x91 => self.indirect_y_address(),
-            _ => panic!("Unknown opcode for {}", instruction.op_code),
-        };
-
-        self.bus.write_byte(addr, self.a);
+        self.write_byte(&instruction.memory_addressing_mode, self.a);
     }
 
     /*
@@ -162,7 +106,21 @@ impl CPU {
     Lots of wet code, could be better dried by absracting the addressing and value loading seperately
     */
 
-    fn get_address(&mut self, memory_addressing_mode: MemoryAdressingMode) -> u16 {
+    fn read_byte(&mut self, memory_addressing_mode: &MemoryAdressingMode) -> u8 {
+        let addr = self.get_address(memory_addressing_mode);
+        return if addr == self.program_counter {
+            self.read_next_byte()
+        } else {
+            self.bus.read_byte(addr)
+        };
+    }
+
+    fn write_byte(&mut self, memory_addressing_mode: &MemoryAdressingMode, byte: u8) {
+        let addr = self.get_address(memory_addressing_mode);
+        self.bus.write_byte(addr, byte);
+    }
+
+    fn get_address(&mut self, memory_addressing_mode: &MemoryAdressingMode) -> u16 {
         return match memory_addressing_mode {
             MemoryAdressingMode::Implied => self.program_counter,
             MemoryAdressingMode::Immediate => self.program_counter,
