@@ -7,6 +7,8 @@ use instructions::{
 };
 use processor_status::ProcesssorStatus;
 
+const STACK: u16 = 0x0100;
+
 pub struct CPU {
     program_counter: u16,
     stack_pointer: u8,
@@ -21,7 +23,7 @@ impl CPU {
     pub fn new(rom: MemoryBus) -> Self {
         let mut cpu = Self {
             program_counter: 0x8000,
-            stack_pointer: 0,
+            stack_pointer: 0xfd,
             a: 0,
             x: 0,
             y: 0,
@@ -37,13 +39,17 @@ impl CPU {
         loop {
             let instruction = get_instruction_from_opcode(self.read_next_byte());
             match instruction.instruction_type {
+                InstructionType::ADC => self.adc(instruction),
+                InstructionType::BRK => return,
                 InstructionType::LDA => self.lda(instruction),
                 InstructionType::LDX => self.ldx(instruction),
                 InstructionType::LDY => self.ldy(instruction),
-                InstructionType::BRK => return,
-                InstructionType::TAX => self.tax(instruction),
                 InstructionType::INX => self.inx(instruction),
                 InstructionType::STA => self.sta(instruction),
+                InstructionType::TAX => self.tax(instruction),
+                InstructionType::TSX => self.tsx(instruction),
+                InstructionType::TXS => self.txs(instruction),
+                InstructionType::AND => self.and(instruction),
                 InstructionType::NotImplemented => panic!("BAD Instruction"),
                 _ => println!("Instruction: {} not implemented", instruction),
             }
@@ -53,6 +59,25 @@ impl CPU {
     /*
     Instructions
     */
+
+    fn adc(&mut self, instruction: &Instruction) {
+        if cfg!(debug_assertions) {
+            println!("{}", instruction);
+        }
+        let data = self.read_byte(&instruction.memory_addressing_mode);
+        self.a = self.add(self.a, data);
+        self.set_negative_and_zero_process_status(self.a);
+    }
+
+    fn and(&mut self, instruction: &Instruction) {
+        if cfg!(debug_assertions) {
+            println!("{}", instruction);
+        }
+        let data = self.read_byte(&instruction.memory_addressing_mode);
+
+        self.a = data & self.a;
+        self.set_negative_and_zero_process_status(self.a)
+    }
 
     fn lda(&mut self, instruction: &Instruction) {
         if cfg!(debug_assertions) {
@@ -78,14 +103,6 @@ impl CPU {
         self.set_negative_and_zero_process_status(self.y);
     }
 
-    fn tax(&mut self, instruction: &Instruction) {
-        if cfg!(debug_assertions) {
-            println!("{}", instruction);
-        }
-        self.x = self.a;
-        self.set_negative_and_zero_process_status(self.x);
-    }
-
     fn inx(&mut self, instruction: &Instruction) {
         if cfg!(debug_assertions) {
             println!("{}", instruction);
@@ -101,9 +118,30 @@ impl CPU {
         self.write_byte(&instruction.memory_addressing_mode, self.a);
     }
 
+    fn tax(&mut self, instruction: &Instruction) {
+        if cfg!(debug_assertions) {
+            println!("{}", instruction);
+        }
+        self.x = self.a;
+        self.set_negative_and_zero_process_status(self.x);
+    }
+
+    fn txs(&mut self, instruction: &Instruction) {
+        if cfg!(debug_assertions) {
+            println!("{}", instruction);
+        }
+        self.stack_pointer = self.x;
+    }
+
+    fn tsx(&mut self, instruction: &Instruction) {
+        if cfg!(debug_assertions) {
+            println!("{}", instruction);
+        }
+        self.x = self.stack_pointer;
+    }
+
     /*
     Addressing
-    Lots of wet code, could be better dried by absracting the addressing and value loading seperately
     */
 
     fn read_byte(&mut self, memory_addressing_mode: &MemoryAdressingMode) -> u8 {
@@ -182,10 +220,52 @@ impl CPU {
     Helpers
     */
 
+    fn add(&mut self, reg_value: u8, data: u8) -> u8 {
+        let sum = reg_value as u16
+            + data as u16
+            + (if self.processor_status.get_carry() {
+                1
+            } else {
+                0
+            }) as u16;
+
+        self.processor_status.set_carry(sum > 0xff);
+        let sum = sum as u8;
+        self.processor_status
+            .set_overflow((data ^ sum) & (sum ^ self.a) & 0x80 != 0);
+        sum
+    }
+
+    fn push(&mut self, byte: u8) {
+        self.stack_pointer = self.stack_pointer.wrapping_sub(1);
+        self.bus
+            .write_byte((STACK as u16) + self.stack_pointer as u16, byte);
+    }
+
+    fn push_word(&mut self, word: u16) {
+        let hi = (word >> 8) as u8;
+        let lo = (word & 0xff) as u8;
+        self.push(hi);
+        self.push(lo);
+    }
+
+    fn pop(&mut self) -> u8 {
+        let byte = self
+            .bus
+            .read_byte((STACK as u16) + self.stack_pointer as u16);
+        self.stack_pointer = self.stack_pointer.wrapping_add(1);
+        byte
+    }
+
+    fn pop_word(&mut self) -> u16 {
+        self.pop() as u16 | (self.pop() as u16) << 8
+    }
+
     pub fn reset_cpu(&mut self) {
         self.processor_status = ProcesssorStatus::default();
         self.a = 0x0;
         self.x = 0x0;
+        self.stack_pointer = 0xfd;
         self.program_counter = self.bus.read_word(0xFFFC); // Part of the NES Spec
     }
 
@@ -240,14 +320,41 @@ mod test {
         ]);
     }
 
-    // #[test]
-    // fn test_end_to_end() {
-    //     let mut cpu = CPU::new(fake_rom());
-    //     cpu.program_counter = 0x8000;
-    //     cpu.start();
+    #[test]
+    #[ignore]
+    fn test_end_to_end() {
+        let mut cpu = CPU::new(fake_rom());
+        cpu.program_counter = 0x8000;
+        cpu.start();
 
-    //     // assert_eq!(cpu.x, 0xc1)
-    // }
+        // assert_eq!(cpu.x, 0xc1)
+    }
+
+    #[test]
+    fn test_adc() {
+        let mut cpu = CPU::new(MemoryBus::new(vec![0x69, 0x10, 0x00]));
+        // Set the ROM start to default
+        cpu.program_counter = 0x8000;
+        cpu.a = 0x00;
+        cpu.start();
+
+        assert_eq!(cpu.a, 0x10);
+        assert!(!cpu.processor_status.get_carry());
+        assert!(!cpu.processor_status.get_overflow());
+    }
+
+    #[test]
+    fn test_adc_carry() {
+        let mut cpu = CPU::new(MemoryBus::new(vec![0x69, 0x10, 0x00]));
+        // Set the ROM start to default
+        cpu.program_counter = 0x8000;
+        cpu.a = 0xff;
+        cpu.start();
+
+        assert_eq!(cpu.a, 15);
+        assert!(cpu.processor_status.get_carry());
+        assert!(!cpu.processor_status.get_overflow());
+    }
 
     #[test]
     fn test_inx_overflow() {
@@ -344,5 +451,25 @@ mod test {
 
         let actual = cpu.bus.read_byte(0x04);
         assert_eq!(cpu.a, cpu.bus.read_byte(0x04));
+    }
+
+    #[test]
+
+    fn test_stack() {
+        let mut cpu = CPU::new(MemoryBus::new(vec![0x85, 0x04, 0x00]));
+        cpu.push(0x10);
+        assert_eq!(cpu.pop(), 0x10);
+
+        cpu.push_word(0xfff);
+        assert_eq!(cpu.pop_word(), 0xfff);
+
+        cpu.push(0x20);
+        cpu.push(0x34);
+        cpu.push(0x56);
+        cpu.push(0x78);
+
+        for i in vec![0x78, 0x56, 0x34, 0x20] {
+            assert_eq!(cpu.pop(), i);
+        }
     }
 }
