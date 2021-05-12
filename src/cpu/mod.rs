@@ -40,6 +40,8 @@ impl CPU {
             let instruction = get_instruction_from_opcode(self.read_next_byte());
             match instruction.instruction_type {
                 InstructionType::ADC => self.adc(instruction),
+                InstructionType::ASL => self.asl(instruction),
+                InstructionType::BIT => self.bit(instruction),
                 InstructionType::BRK => return,
                 InstructionType::LDA => self.lda(instruction),
                 InstructionType::LDX => self.ldx(instruction),
@@ -69,6 +71,13 @@ impl CPU {
         self.set_negative_and_zero_process_status(self.a);
     }
 
+    fn asl(&mut self, instruction: &Instruction) {
+        let mut data = self.read_byte(&instruction.memory_addressing_mode);
+        self.processor_status.set_carry(data >> 7 == 1);
+        data = data << 1;
+        self.write_byte(&instruction.memory_addressing_mode, data);
+    }
+
     fn and(&mut self, instruction: &Instruction) {
         if cfg!(debug_assertions) {
             println!("{}", instruction);
@@ -77,6 +86,13 @@ impl CPU {
 
         self.a = data & self.a;
         self.set_negative_and_zero_process_status(self.a)
+    }
+
+    fn bit(&mut self, instruction: &Instruction) {
+        let data = self.read_byte(&instruction.memory_addressing_mode);
+        self.processor_status.set_zero(data & self.a == 0);
+        self.processor_status.set_negative(data & 0b10000000 > 0);
+        self.processor_status.set_overflow(data & 0b01000000 > 0);
     }
 
     fn lda(&mut self, instruction: &Instruction) {
@@ -145,17 +161,29 @@ impl CPU {
     */
 
     fn read_byte(&mut self, memory_addressing_mode: &MemoryAdressingMode) -> u8 {
-        let addr = self.get_address(memory_addressing_mode);
-        return if addr == self.program_counter {
-            self.read_next_byte()
-        } else {
-            self.bus.read_byte(addr)
+        return match memory_addressing_mode {
+            MemoryAdressingMode::Accumulator => self.a,
+            _ => {
+                let addr = self.get_address(memory_addressing_mode);
+                return if addr == self.program_counter {
+                    self.read_next_byte()
+                } else {
+                    self.bus.read_byte(addr)
+                };
+            }
         };
     }
 
     fn write_byte(&mut self, memory_addressing_mode: &MemoryAdressingMode, byte: u8) {
-        let addr = self.get_address(memory_addressing_mode);
-        self.bus.write_byte(addr, byte);
+        match memory_addressing_mode {
+            MemoryAdressingMode::Accumulator => {
+                self.a = byte;
+            }
+            _ => {
+                let addr = self.get_address(memory_addressing_mode);
+                self.bus.write_byte(addr, byte);
+            }
+        }
     }
 
     fn get_address(&mut self, memory_addressing_mode: &MemoryAdressingMode) -> u16 {
@@ -357,6 +385,56 @@ mod test {
     }
 
     #[test]
+    fn test_asl() {
+        let mut cpu = CPU::new(MemoryBus::new(vec![0x0a, 0x00]));
+
+        cpu.program_counter = 0x8000;
+        cpu.a = 0b1111_1111;
+        cpu.start();
+
+        assert_eq!(cpu.a, 0b1111_1110);
+        assert!(cpu.processor_status.get_carry());
+    }
+
+    #[test]
+    fn test_asl_no_carry() {
+        let mut cpu = CPU::new(MemoryBus::new(vec![0x0a, 0x00]));
+
+        cpu.program_counter = 0x8000;
+        cpu.a = 0b0111_1111;
+        cpu.start();
+
+        assert_eq!(cpu.a, 0b1111_1110);
+        assert!(!cpu.processor_status.get_carry());
+    }
+
+    #[test]
+    fn test_bit_zero() {
+        let mut cpu = CPU::new(MemoryBus::new(vec![0x2c, 0xaa, 0x00]));
+        cpu.program_counter = 0x8000;
+        cpu.a = 0b0111_1111;
+        cpu.bus.write_byte(0xaa, 0b0000_0000);
+        cpu.start();
+
+        assert!(cpu.processor_status.get_zero());
+        assert!(!cpu.processor_status.get_overflow());
+        assert!(!cpu.processor_status.get_negative());
+    }
+
+    #[test]
+    fn test_bit_not_zero_overflow_carry() {
+        let mut cpu = CPU::new(MemoryBus::new(vec![0x2c, 0xaa, 0x00]));
+        cpu.program_counter = 0x8000;
+        cpu.a = 0b0111_1111;
+        cpu.bus.write_byte(0xaa, 0b1100_0001);
+        cpu.start();
+
+        assert!(!cpu.processor_status.get_zero());
+        assert!(cpu.processor_status.get_overflow());
+        assert!(cpu.processor_status.get_negative());
+    }
+
+    #[test]
     fn test_inx_overflow() {
         let mut cpu = CPU::new(MemoryBus::new(vec![0xe8, 0xe8, 0x00]));
         // Set the ROM start to default
@@ -449,7 +527,6 @@ mod test {
         cpu.a = 0x10;
         cpu.start();
 
-        let actual = cpu.bus.read_byte(0x04);
         assert_eq!(cpu.a, cpu.bus.read_byte(0x04));
     }
 

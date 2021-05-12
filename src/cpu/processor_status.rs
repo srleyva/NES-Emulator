@@ -192,6 +192,7 @@ mod test {
         assert_eq!(processor_status.get_negative(), false);
     }
 
+    #[test]
     fn test_processer_status_is_negative() {
         let pos_int: u8 = 0b0000_0001;
         assert_eq!(ProcesssorStatus::is_negative(pos_int), false);
