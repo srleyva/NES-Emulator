@@ -41,8 +41,21 @@ impl CPU {
             match instruction.instruction_type {
                 InstructionType::ADC => self.adc(instruction),
                 InstructionType::ASL => self.asl(instruction),
+                InstructionType::BCC => self.bcc(instruction),
+                InstructionType::BCS => self.bcs(instruction),
+                InstructionType::BEQ => self.beq(instruction),
                 InstructionType::BIT => self.bit(instruction),
+                InstructionType::BMI => self.bmi(instruction),
+                InstructionType::BNE => self.bne(instruction),
+                InstructionType::BPL => self.bpl(instruction),
                 InstructionType::BRK => return,
+                InstructionType::BVC => self.bvc(instruction),
+                InstructionType::BVS => self.bvs(instruction),
+                InstructionType::CLC => self.clc(instruction),
+                InstructionType::CLD => self.cld(instruction),
+                InstructionType::CLI => self.cli(instruction),
+                InstructionType::CLV => self.clv(instruction),
+                InstructionType::CMP => self.cmp(instruction),
                 InstructionType::LDA => self.lda(instruction),
                 InstructionType::LDX => self.ldx(instruction),
                 InstructionType::LDY => self.ldy(instruction),
@@ -71,13 +84,6 @@ impl CPU {
         self.set_negative_and_zero_process_status(self.a);
     }
 
-    fn asl(&mut self, instruction: &Instruction) {
-        let mut data = self.read_byte(&instruction.memory_addressing_mode);
-        self.processor_status.set_carry(data >> 7 == 1);
-        data = data << 1;
-        self.write_byte(&instruction.memory_addressing_mode, data);
-    }
-
     fn and(&mut self, instruction: &Instruction) {
         if cfg!(debug_assertions) {
             println!("{}", instruction);
@@ -88,11 +94,118 @@ impl CPU {
         self.set_negative_and_zero_process_status(self.a)
     }
 
+    fn asl(&mut self, instruction: &Instruction) {
+        if cfg!(debug_assertions) {
+            println!("{}", instruction);
+        }
+        let mut data = self.read_byte(&instruction.memory_addressing_mode);
+        self.processor_status.set_carry(data >> 7 == 1);
+        data = data << 1;
+        self.write_byte(&instruction.memory_addressing_mode, data);
+    }
+
+    fn bcc(&mut self, instruction: &Instruction) {
+        if cfg!(debug_assertions) {
+            println!("{}", instruction);
+        }
+        self.branch(!self.processor_status.get_carry());
+    }
+
+    fn bcs(&mut self, instruction: &Instruction) {
+        if cfg!(debug_assertions) {
+            println!("{}", instruction);
+        }
+        self.branch(self.processor_status.get_carry());
+    }
+
+    fn beq(&mut self, instruction: &Instruction) {
+        if cfg!(debug_assertions) {
+            println!("{}", instruction);
+        }
+        self.branch(self.processor_status.get_zero());
+    }
+
+    fn bmi(&mut self, instruction: &Instruction) {
+        if cfg!(debug_assertions) {
+            println!("{}", instruction);
+        }
+        self.branch(self.processor_status.get_negative());
+    }
+
+    fn bne(&mut self, instruction: &Instruction) {
+        if cfg!(debug_assertions) {
+            println!("{}", instruction);
+        }
+        self.branch(!self.processor_status.get_zero())
+    }
+
+    fn bpl(&mut self, instruction: &Instruction) {
+        if cfg!(debug_assertions) {
+            println!("{}", instruction);
+        }
+        self.branch(!self.processor_status.get_negative())
+    }
+
+    fn bvc(&mut self, instruction: &Instruction) {
+        if cfg!(debug_assertions) {
+            println!("{}", instruction);
+        }
+        self.branch(!self.processor_status.get_overflow())
+    }
+
+    fn bvs(&mut self, instruction: &Instruction) {
+        if cfg!(debug_assertions) {
+            println!("{}", instruction);
+        }
+        self.branch(self.processor_status.get_overflow())
+    }
+
     fn bit(&mut self, instruction: &Instruction) {
+        if cfg!(debug_assertions) {
+            println!("{}", instruction);
+        }
         let data = self.read_byte(&instruction.memory_addressing_mode);
         self.processor_status.set_zero(data & self.a == 0);
         self.processor_status.set_negative(data & 0b10000000 > 0);
         self.processor_status.set_overflow(data & 0b01000000 > 0);
+    }
+
+    fn clc(&mut self, instruction: &Instruction) {
+        if cfg!(debug_assertions) {
+            println!("{}", instruction);
+        }
+        self.processor_status.set_carry(false);
+    }
+
+    fn cld(&mut self, instruction: &Instruction) {
+        if cfg!(debug_assertions) {
+            println!("{}", instruction);
+        }
+        self.processor_status.set_decimal(false);
+    }
+
+    fn cli(&mut self, instruction: &Instruction) {
+        if cfg!(debug_assertions) {
+            println!("{}", instruction);
+        }
+        self.processor_status.set_interrupt(false);
+    }
+
+    fn clv(&mut self, instruction: &Instruction) {
+        if cfg!(debug_assertions) {
+            println!("{}", instruction);
+        }
+        self.processor_status.set_overflow(false);
+    }
+
+    fn cmp(&mut self, instruction: &Instruction) {
+        if cfg!(debug_assertions) {
+            println!("{}", instruction);
+        }
+        let data = self.read_byte(&instruction.memory_addressing_mode);
+        self.processor_status.set_carry(self.a >= data);
+        self.processor_status
+            .set_zero(self.processor_status.get_zero());
     }
 
     fn lda(&mut self, instruction: &Instruction) {
@@ -199,7 +312,10 @@ impl CPU {
             MemoryAdressingMode::Indirect => self.indirect_address(),
             MemoryAdressingMode::IndirectX => self.indirect_x_address(),
             MemoryAdressingMode::IndirectY => self.absolute_y_address(),
-            _ => todo!(),
+            MemoryAdressingMode::Relative => panic!("Look up not supported for relative"),
+            MemoryAdressingMode::Accumulator => {
+                panic!("This does not refer to memory but register a")
+            }
         };
     }
 
@@ -247,6 +363,13 @@ impl CPU {
     /*
     Helpers
     */
+
+    fn branch(&mut self, jump: bool) {
+        let offset = self.read_next_byte() as u16;
+        if jump {
+            self.program_counter = self.program_counter.wrapping_add(offset);
+        }
+    }
 
     fn add(&mut self, reg_value: u8, data: u8) -> u8 {
         let sum = reg_value as u16
@@ -406,6 +529,53 @@ mod test {
 
         assert_eq!(cpu.a, 0b1111_1110);
         assert!(!cpu.processor_status.get_carry());
+    }
+
+    #[test]
+    fn test_bcc_carry() {
+        let mut cpu = CPU::new(MemoryBus::new(vec![
+            0x90, 0x02, 0x69, 0x01, 0x69, 0x01, 0x00,
+        ]));
+
+        cpu.program_counter = 0x8000;
+        cpu.processor_status.set_carry(true);
+        cpu.start();
+        assert_eq!(cpu.a, 0x03) // Carry is set so...it adds with a carry
+    }
+
+    #[test]
+    fn test_bcc_no_carry() {
+        let mut cpu = CPU::new(MemoryBus::new(vec![
+            0x90, 0x02, 0x69, 0x01, 0x69, 0x01, 0x00,
+        ]));
+
+        cpu.program_counter = 0x8000;
+        cpu.processor_status.set_carry(false);
+        cpu.start();
+        assert_eq!(cpu.a, 0x01)
+    }
+    #[test]
+    fn test_bcs_carry() {
+        let mut cpu = CPU::new(MemoryBus::new(vec![
+            0xb0, 0x02, 0x69, 0x01, 0x69, 0x01, 0x00,
+        ]));
+
+        cpu.program_counter = 0x8000;
+        cpu.processor_status.set_carry(true);
+        cpu.start();
+        assert_eq!(cpu.a, 0x02) // Carry is set so...it adds with a carry
+    }
+
+    #[test]
+    fn test_bcs_no_carry() {
+        let mut cpu = CPU::new(MemoryBus::new(vec![
+            0xb0, 0x02, 0x69, 0x01, 0x69, 0x01, 0x00,
+        ]));
+
+        cpu.program_counter = 0x8000;
+        cpu.processor_status.set_carry(false);
+        cpu.start();
+        assert_eq!(cpu.a, 0x02)
     }
 
     #[test]
