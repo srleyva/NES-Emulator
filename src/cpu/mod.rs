@@ -45,6 +45,9 @@ impl CPU {
     {
         loop {
             let instruction = get_instruction_from_opcode(self.read_next_byte());
+            if cfg!(debug_assertions) {
+                println!("{}", instruction);
+            }
             match instruction.instruction_type {
                 InstructionType::AND => self.and(instruction),
                 InstructionType::ADC => self.adc(instruction),
@@ -56,7 +59,9 @@ impl CPU {
                 InstructionType::BMI => self.bmi(instruction),
                 InstructionType::BNE => self.bne(instruction),
                 InstructionType::BPL => self.bpl(instruction),
-                InstructionType::BRK => return,
+                InstructionType::BRK => {
+                    return;
+                }
                 InstructionType::BVC => self.bvc(instruction),
                 InstructionType::BVS => self.bvs(instruction),
                 InstructionType::CLC => self.clc(instruction),
@@ -98,18 +103,12 @@ impl CPU {
     */
 
     fn adc(&mut self, instruction: &Instruction) {
-        if cfg!(debug_assertions) {
-            println!("{}", instruction);
-        }
         let data = self.read_byte(&instruction.memory_addressing_mode);
         self.a = self.add(self.a, data);
         self.set_negative_and_zero_process_status(self.a);
     }
 
     fn and(&mut self, instruction: &Instruction) {
-        if cfg!(debug_assertions) {
-            println!("{}", instruction);
-        }
         let data = self.read_byte(&instruction.memory_addressing_mode);
 
         self.a = data & self.a;
@@ -117,9 +116,6 @@ impl CPU {
     }
 
     fn asl(&mut self, instruction: &Instruction) {
-        if cfg!(debug_assertions) {
-            println!("{}", instruction);
-        }
         let mut data = self.read_byte(&instruction.memory_addressing_mode);
         self.processor_status.set_carry(data >> 7 == 1);
         data = data << 1;
@@ -128,65 +124,38 @@ impl CPU {
     }
 
     fn bcc(&mut self, instruction: &Instruction) {
-        if cfg!(debug_assertions) {
-            println!("{}", instruction);
-        }
         self.branch(!self.processor_status.get_carry());
     }
 
     fn bcs(&mut self, instruction: &Instruction) {
-        if cfg!(debug_assertions) {
-            println!("{}", instruction);
-        }
         self.branch(self.processor_status.get_carry());
     }
 
     fn beq(&mut self, instruction: &Instruction) {
-        if cfg!(debug_assertions) {
-            println!("{}", instruction);
-        }
         self.branch(self.processor_status.get_zero());
     }
 
     fn bmi(&mut self, instruction: &Instruction) {
-        if cfg!(debug_assertions) {
-            println!("{}", instruction);
-        }
         self.branch(self.processor_status.get_negative());
     }
 
     fn bne(&mut self, instruction: &Instruction) {
-        if cfg!(debug_assertions) {
-            println!("{}", instruction);
-        }
         self.branch(!self.processor_status.get_zero())
     }
 
     fn bpl(&mut self, instruction: &Instruction) {
-        if cfg!(debug_assertions) {
-            println!("{}", instruction);
-        }
         self.branch(!self.processor_status.get_negative())
     }
 
     fn bvc(&mut self, instruction: &Instruction) {
-        if cfg!(debug_assertions) {
-            println!("{}", instruction);
-        }
         self.branch(!self.processor_status.get_overflow())
     }
 
     fn bvs(&mut self, instruction: &Instruction) {
-        if cfg!(debug_assertions) {
-            println!("{}", instruction);
-        }
         self.branch(self.processor_status.get_overflow())
     }
 
     fn bit(&mut self, instruction: &Instruction) {
-        if cfg!(debug_assertions) {
-            println!("{}", instruction);
-        }
         let data = self.read_byte(&instruction.memory_addressing_mode);
         self.processor_status.set_zero(data & self.a == 0);
         self.processor_status.set_negative(data & 0b10000000 > 0);
@@ -194,61 +163,37 @@ impl CPU {
     }
 
     fn clc(&mut self, instruction: &Instruction) {
-        if cfg!(debug_assertions) {
-            println!("{}", instruction);
-        }
         self.processor_status.set_carry(false);
     }
 
     fn cld(&mut self, instruction: &Instruction) {
-        if cfg!(debug_assertions) {
-            println!("{}", instruction);
-        }
         self.processor_status.set_decimal(false);
     }
 
     fn cli(&mut self, instruction: &Instruction) {
-        if cfg!(debug_assertions) {
-            println!("{}", instruction);
-        }
         self.processor_status.set_interrupt(false);
     }
 
     fn clv(&mut self, instruction: &Instruction) {
-        if cfg!(debug_assertions) {
-            println!("{}", instruction);
-        }
         self.processor_status.set_overflow(false);
     }
 
     fn cmp(&mut self, instruction: &Instruction) {
-        if cfg!(debug_assertions) {
-            println!("{}", instruction);
-        }
         let data = self.read_byte(&instruction.memory_addressing_mode);
         self.compare(self.a, data);
     }
 
     fn cpx(&mut self, instruction: &Instruction) {
-        if cfg!(debug_assertions) {
-            println!("{}", instruction);
-        }
         let data = self.read_byte(&instruction.memory_addressing_mode);
         self.compare(self.x, data);
     }
 
     fn cpy(&mut self, instruction: &Instruction) {
-        if cfg!(debug_assertions) {
-            println!("{}", instruction);
-        }
         let data = self.read_byte(&instruction.memory_addressing_mode);
         self.compare(self.y, data);
     }
 
     fn dec(&mut self, instruction: &Instruction) {
-        if cfg!(debug_assertions) {
-            println!("{}", instruction);
-        }
         let addr = self.get_address(&instruction.memory_addressing_mode);
         let value = self.bus.read_byte(addr);
         let new_value = value.wrapping_sub(1);
@@ -257,33 +202,21 @@ impl CPU {
     }
 
     fn dex(&mut self, instruction: &Instruction) {
-        if cfg!(debug_assertions) {
-            println!("{}", instruction);
-        }
         self.x = self.x.wrapping_sub(1);
         self.set_negative_and_zero_process_status(self.x);
     }
 
     fn dey(&mut self, instruction: &Instruction) {
-        if cfg!(debug_assertions) {
-            println!("{}", instruction);
-        }
         self.y = self.y.wrapping_sub(1);
         self.set_negative_and_zero_process_status(self.y)
     }
 
     fn eor(&mut self, instruction: &Instruction) {
-        if cfg!(debug_assertions) {
-            println!("{}", instruction);
-        }
         self.a = self.a ^ self.read_byte(&instruction.memory_addressing_mode);
         self.set_negative_and_zero_process_status(self.a);
     }
 
     fn inc(&mut self, instruction: &Instruction) {
-        if cfg!(debug_assertions) {
-            println!("{}", instruction);
-        }
         let addr = self.get_address(&instruction.memory_addressing_mode);
         let value = self.bus.read_byte(addr);
         let new_value = value.wrapping_add(1);
@@ -292,25 +225,16 @@ impl CPU {
     }
 
     fn inx(&mut self, instruction: &Instruction) {
-        if cfg!(debug_assertions) {
-            println!("{}", instruction);
-        }
         self.x = self.x.wrapping_add(1);
         self.set_negative_and_zero_process_status(self.x);
     }
 
     fn iny(&mut self, instruction: &Instruction) {
-        if cfg!(debug_assertions) {
-            println!("{}", instruction);
-        }
         self.y = self.y.wrapping_add(1);
         self.set_negative_and_zero_process_status(self.y);
     }
 
     fn jmp(&mut self, instruction: &Instruction) {
-        if cfg!(debug_assertions) {
-            println!("{}", instruction);
-        }
         let addr = match instruction.memory_addressing_mode {
             MemoryAdressingMode::Indirect => {
                 /*
@@ -337,9 +261,6 @@ impl CPU {
     }
 
     fn jsr(&mut self, instruction: &Instruction) {
-        if cfg!(debug_assertions) {
-            println!("{}", instruction);
-        }
         // so that the pc is incremented appropratiely
         let addr = self.get_address(&instruction.memory_addressing_mode);
 
@@ -350,34 +271,21 @@ impl CPU {
     }
 
     fn lda(&mut self, instruction: &Instruction) {
-        if cfg!(debug_assertions) {
-            println!("{}", instruction);
-        }
         self.a = self.read_byte(&instruction.memory_addressing_mode);
         self.set_negative_and_zero_process_status(self.a);
     }
 
     fn ldx(&mut self, instruction: &Instruction) {
-        if cfg!(debug_assertions) {
-            println!("{}", instruction);
-        }
         self.x = self.read_byte(&instruction.memory_addressing_mode);
         self.set_negative_and_zero_process_status(self.x);
     }
 
     fn ldy(&mut self, instruction: &Instruction) {
-        if cfg!(debug_assertions) {
-            println!("{}", instruction);
-        }
         self.y = self.read_byte(&instruction.memory_addressing_mode);
         self.set_negative_and_zero_process_status(self.y);
     }
 
     fn lsr(&mut self, instruction: &Instruction) {
-        if cfg!(debug_assertions) {
-            println!("{}", instruction);
-        }
-
         let mut data = self.read_byte(&instruction.memory_addressing_mode);
         self.processor_status.set_carry(data & 0b0000_0001 == 1);
         data &= 0b1011_1111;
@@ -386,54 +294,32 @@ impl CPU {
     }
 
     fn nop(&mut self, instruction: &Instruction) {
-        if cfg!(debug_assertions) {
-            println!("{}", instruction);
-        }
         self.program_counter = self.program_counter.wrapping_add(1);
     }
 
     fn rts(&mut self, instruction: &Instruction) {
-        if cfg!(debug_assertions) {
-            println!("{}", instruction);
-        }
         self.program_counter = self.pop_word().wrapping_add(1);
     }
 
     fn sta(&mut self, instruction: &Instruction) {
-        if cfg!(debug_assertions) {
-            println!("{}", instruction);
-        }
         self.write_byte(&instruction.memory_addressing_mode, self.a);
     }
 
     fn tax(&mut self, instruction: &Instruction) {
-        if cfg!(debug_assertions) {
-            println!("{}", instruction);
-        }
         self.x = self.a;
         self.set_negative_and_zero_process_status(self.x);
     }
 
     fn txs(&mut self, instruction: &Instruction) {
-        if cfg!(debug_assertions) {
-            println!("{}", instruction);
-        }
         self.stack_pointer = self.x;
     }
 
     fn txa(&mut self, instruction: &Instruction) {
-        if cfg!(debug_assertions) {
-            println!("{}", instruction);
-        }
-
         self.a = self.x;
         self.set_negative_and_zero_process_status(self.a);
     }
 
     fn tsx(&mut self, instruction: &Instruction) {
-        if cfg!(debug_assertions) {
-            println!("{}", instruction);
-        }
         self.x = self.stack_pointer;
     }
 
@@ -540,9 +426,10 @@ impl CPU {
     }
 
     fn branch(&mut self, jump: bool) {
-        let offset = self.read_next_byte() as u16;
+        let offset = self.read_next_byte() as i8;
         if jump {
-            self.program_counter = self.program_counter.wrapping_add(offset);
+            let new_addr = self.program_counter.wrapping_add(offset as u16);
+            self.program_counter = self.program_counter.wrapping_add(offset as u16);
         }
     }
 
