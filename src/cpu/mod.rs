@@ -16,7 +16,7 @@ pub struct CPU {
     x: u8,
     y: u8,
     processor_status: ProcesssorStatus,
-    bus: MemoryBus,
+    pub(crate) bus: MemoryBus,
 }
 
 impl CPU {
@@ -36,9 +36,17 @@ impl CPU {
     }
 
     pub fn start(&mut self) {
+        self.start_with_callback(|_| {});
+    }
+
+    pub fn start_with_callback<F>(&mut self, mut callback: F)
+    where
+        F: FnMut(&mut CPU),
+    {
         loop {
             let instruction = get_instruction_from_opcode(self.read_next_byte());
             match instruction.instruction_type {
+                InstructionType::AND => self.and(instruction),
                 InstructionType::ADC => self.adc(instruction),
                 InstructionType::ASL => self.asl(instruction),
                 InstructionType::BCC => self.bcc(instruction),
@@ -56,18 +64,32 @@ impl CPU {
                 InstructionType::CLI => self.cli(instruction),
                 InstructionType::CLV => self.clv(instruction),
                 InstructionType::CMP => self.cmp(instruction),
+                InstructionType::CPX => self.cpx(instruction),
+                InstructionType::CPY => self.cpy(instruction),
+                InstructionType::DEC => self.dec(instruction),
+                InstructionType::DEX => self.dex(instruction),
+                InstructionType::DEY => self.dey(instruction),
+                InstructionType::EOR => self.eor(instruction),
+                InstructionType::INC => self.inc(instruction),
+                InstructionType::INX => self.inx(instruction),
+                InstructionType::INY => self.iny(instruction),
+                InstructionType::JMP => self.jmp(instruction),
+                InstructionType::JSR => self.jsr(instruction),
                 InstructionType::LDA => self.lda(instruction),
                 InstructionType::LDX => self.ldx(instruction),
                 InstructionType::LDY => self.ldy(instruction),
-                InstructionType::INX => self.inx(instruction),
+                InstructionType::LSR => self.lsr(instruction),
+                InstructionType::NOP => self.nop(instruction),
+                InstructionType::RTS => self.rts(instruction),
                 InstructionType::STA => self.sta(instruction),
                 InstructionType::TAX => self.tax(instruction),
                 InstructionType::TSX => self.tsx(instruction),
                 InstructionType::TXS => self.txs(instruction),
-                InstructionType::AND => self.and(instruction),
+                InstructionType::TXA => self.txa(instruction),
                 InstructionType::NotImplemented => panic!("BAD Instruction"),
                 _ => println!("Instruction: {} not implemented", instruction),
             }
+            callback(self);
         }
     }
 
@@ -102,6 +124,7 @@ impl CPU {
         self.processor_status.set_carry(data >> 7 == 1);
         data = data << 1;
         self.write_byte(&instruction.memory_addressing_mode, data);
+        self.set_negative_and_zero_process_status(data);
     }
 
     fn bcc(&mut self, instruction: &Instruction) {
@@ -203,9 +226,127 @@ impl CPU {
             println!("{}", instruction);
         }
         let data = self.read_byte(&instruction.memory_addressing_mode);
-        self.processor_status.set_carry(self.a >= data);
-        self.processor_status
-            .set_zero(self.processor_status.get_zero());
+        self.compare(self.a, data);
+    }
+
+    fn cpx(&mut self, instruction: &Instruction) {
+        if cfg!(debug_assertions) {
+            println!("{}", instruction);
+        }
+        let data = self.read_byte(&instruction.memory_addressing_mode);
+        self.compare(self.x, data);
+    }
+
+    fn cpy(&mut self, instruction: &Instruction) {
+        if cfg!(debug_assertions) {
+            println!("{}", instruction);
+        }
+        let data = self.read_byte(&instruction.memory_addressing_mode);
+        self.compare(self.y, data);
+    }
+
+    fn dec(&mut self, instruction: &Instruction) {
+        if cfg!(debug_assertions) {
+            println!("{}", instruction);
+        }
+        let addr = self.get_address(&instruction.memory_addressing_mode);
+        let value = self.bus.read_byte(addr);
+        let new_value = value.wrapping_sub(1);
+        self.bus.write_byte(addr, new_value);
+        self.set_negative_and_zero_process_status(new_value)
+    }
+
+    fn dex(&mut self, instruction: &Instruction) {
+        if cfg!(debug_assertions) {
+            println!("{}", instruction);
+        }
+        self.x = self.x.wrapping_sub(1);
+        self.set_negative_and_zero_process_status(self.x);
+    }
+
+    fn dey(&mut self, instruction: &Instruction) {
+        if cfg!(debug_assertions) {
+            println!("{}", instruction);
+        }
+        self.y = self.y.wrapping_sub(1);
+        self.set_negative_and_zero_process_status(self.y)
+    }
+
+    fn eor(&mut self, instruction: &Instruction) {
+        if cfg!(debug_assertions) {
+            println!("{}", instruction);
+        }
+        self.a = self.a ^ self.read_byte(&instruction.memory_addressing_mode);
+        self.set_negative_and_zero_process_status(self.a);
+    }
+
+    fn inc(&mut self, instruction: &Instruction) {
+        if cfg!(debug_assertions) {
+            println!("{}", instruction);
+        }
+        let addr = self.get_address(&instruction.memory_addressing_mode);
+        let value = self.bus.read_byte(addr);
+        let new_value = value.wrapping_add(1);
+        self.bus.write_byte(addr, new_value);
+        self.set_negative_and_zero_process_status(new_value)
+    }
+
+    fn inx(&mut self, instruction: &Instruction) {
+        if cfg!(debug_assertions) {
+            println!("{}", instruction);
+        }
+        self.x = self.x.wrapping_add(1);
+        self.set_negative_and_zero_process_status(self.x);
+    }
+
+    fn iny(&mut self, instruction: &Instruction) {
+        if cfg!(debug_assertions) {
+            println!("{}", instruction);
+        }
+        self.y = self.y.wrapping_add(1);
+        self.set_negative_and_zero_process_status(self.y);
+    }
+
+    fn jmp(&mut self, instruction: &Instruction) {
+        if cfg!(debug_assertions) {
+            println!("{}", instruction);
+        }
+        let addr = match instruction.memory_addressing_mode {
+            MemoryAdressingMode::Indirect => {
+                /*
+                An original 6502 has does not correctly fetch the target address
+                if the indirect vector falls on a page boundary (e.g. $xxFF where
+                xx is any value from $00 to $FF). In this case fetches the LSB from
+                $xxFF as expected but takes the MSB from $xx00.
+                This is fixed in some later chips like the 65SC02 so for compatibility always
+                ensure the indirect vector is not at the end of the page.
+                */
+                let addr = self.read_next_word();
+                if addr & 0x00ff == 0x00ff {
+                    let lo = self.bus.read_byte(addr);
+                    let hi = self.bus.read_byte(addr & 0xFF00);
+                    (hi as u16) << 8 | (lo as u16)
+                } else {
+                    self.bus.read_word(addr)
+                }
+            }
+            MemoryAdressingMode::Absolute => self.read_next_word(),
+            _ => panic!("Not support for jmp"),
+        };
+        self.program_counter = addr;
+    }
+
+    fn jsr(&mut self, instruction: &Instruction) {
+        if cfg!(debug_assertions) {
+            println!("{}", instruction);
+        }
+        // so that the pc is incremented appropratiely
+        let addr = self.get_address(&instruction.memory_addressing_mode);
+
+        let return_point = self.program_counter.wrapping_sub(1);
+        self.push_word(return_point);
+
+        self.program_counter = addr;
     }
 
     fn lda(&mut self, instruction: &Instruction) {
@@ -232,12 +373,30 @@ impl CPU {
         self.set_negative_and_zero_process_status(self.y);
     }
 
-    fn inx(&mut self, instruction: &Instruction) {
+    fn lsr(&mut self, instruction: &Instruction) {
         if cfg!(debug_assertions) {
             println!("{}", instruction);
         }
-        self.x = self.x.wrapping_add(1);
-        self.set_negative_and_zero_process_status(self.x);
+
+        let mut data = self.read_byte(&instruction.memory_addressing_mode);
+        self.processor_status.set_carry(data & 0b0000_0001 == 1);
+        data &= 0b1011_1111;
+        self.write_byte(&instruction.memory_addressing_mode, data);
+        self.set_negative_and_zero_process_status(data);
+    }
+
+    fn nop(&mut self, instruction: &Instruction) {
+        if cfg!(debug_assertions) {
+            println!("{}", instruction);
+        }
+        self.program_counter = self.program_counter.wrapping_add(1);
+    }
+
+    fn rts(&mut self, instruction: &Instruction) {
+        if cfg!(debug_assertions) {
+            println!("{}", instruction);
+        }
+        self.program_counter = self.pop_word().wrapping_add(1);
     }
 
     fn sta(&mut self, instruction: &Instruction) {
@@ -260,6 +419,15 @@ impl CPU {
             println!("{}", instruction);
         }
         self.stack_pointer = self.x;
+    }
+
+    fn txa(&mut self, instruction: &Instruction) {
+        if cfg!(debug_assertions) {
+            println!("{}", instruction);
+        }
+
+        self.a = self.x;
+        self.set_negative_and_zero_process_status(self.a);
     }
 
     fn tsx(&mut self, instruction: &Instruction) {
@@ -364,6 +532,13 @@ impl CPU {
     Helpers
     */
 
+    fn compare(&mut self, register: u8, value: u8) {
+        if register >= value {
+            self.processor_status.set_carry(true);
+        }
+        self.set_negative_and_zero_process_status(register.wrapping_sub(value))
+    }
+
     fn branch(&mut self, jump: bool) {
         let offset = self.read_next_byte() as u16;
         if jump {
@@ -412,21 +587,22 @@ impl CPU {
         self.pop() as u16 | (self.pop() as u16) << 8
     }
 
-    pub fn reset_cpu(&mut self) {
+    pub(crate) fn reset_cpu(&mut self) {
         self.processor_status = ProcesssorStatus::default();
         self.a = 0x0;
         self.x = 0x0;
+        self.y = 0x0;
         self.stack_pointer = 0xfd;
         self.program_counter = self.bus.read_word(0xFFFC); // Part of the NES Spec
     }
 
-    pub fn read_next_byte(&mut self) -> u8 {
+    fn read_next_byte(&mut self) -> u8 {
         let byte = self.bus.read_byte(self.program_counter);
         self.program_counter += 1;
         byte
     }
 
-    pub fn read_next_word(&mut self) -> u16 {
+    fn read_next_word(&mut self) -> u16 {
         let word = self.bus.read_word(self.program_counter);
         self.program_counter += 2;
         word
@@ -472,13 +648,9 @@ mod test {
     }
 
     #[test]
-    #[ignore]
     fn test_end_to_end() {
         let mut cpu = CPU::new(fake_rom());
-        cpu.program_counter = 0x8000;
         cpu.start();
-
-        // assert_eq!(cpu.x, 0xc1)
     }
 
     #[test]

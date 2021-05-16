@@ -8,8 +8,10 @@ pub struct MemoryBus {
 impl MemoryBus {
     pub fn new(buffer: Vec<u8>) -> Self {
         let mut memory: [u8; 0xFFFF] = [0; 0xFFFF];
-        memory[0x8000..(0x8000 + buffer.len())].copy_from_slice(&buffer[..]);
-        Self { memory }
+        memory[0x0600..(0x0600 + buffer.len())].copy_from_slice(&buffer[..]);
+        let mut bus = Self { memory };
+        bus.write_word(0xFFFC, 0x0600);
+        bus
     }
 
     pub fn from_rom(rom_path: &'static str) -> Self {
