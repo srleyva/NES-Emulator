@@ -66,6 +66,7 @@ impl CPU {
                 InstructionType::BNE => self.bne(instruction),
                 InstructionType::BPL => self.bpl(instruction),
                 InstructionType::BRK => {
+                    self.processor_status.set_break(true);
                     return;
                 }
                 InstructionType::BVC => self.bvc(instruction),
@@ -91,15 +92,29 @@ impl CPU {
                 InstructionType::LDY => self.ldy(instruction),
                 InstructionType::LSR => self.lsr(instruction),
                 InstructionType::NOP => self.nop(instruction),
+                InstructionType::ORA => self.ora(instruction),
+                InstructionType::PHA => self.pha(instruction),
+                InstructionType::PHP => self.php(instruction),
+                InstructionType::PLA => self.pla(instruction),
+                InstructionType::PLP => self.plp(instruction),
+                InstructionType::ROL => self.rol(instruction),
+                InstructionType::ROR => self.ror(instruction),
+                InstructionType::RTI => self.rti(instruction),
                 InstructionType::RTS => self.rts(instruction),
                 InstructionType::STA => self.sta(instruction),
                 InstructionType::SBC => self.sbc(instruction),
                 InstructionType::SEC => self.sec(instruction),
+                InstructionType::SED => self.sed(instruction),
+                InstructionType::SEI => self.sei(instruction),
+                InstructionType::STX => self.stx(instruction),
+                InstructionType::STY => self.sty(instruction),
                 InstructionType::TAX => self.tax(instruction),
                 InstructionType::TSX => self.tsx(instruction),
                 InstructionType::TXS => self.txs(instruction),
                 InstructionType::TXA => self.txa(instruction),
-                _ => println!("Instruction: {} not implemented", instruction),
+                InstructionType::TAY => self.tay(instruction),
+                InstructionType::TYA => self.tya(instruction),
+                InstructionType::NotImplemented => panic!("Not implemented! {}", instruction),
             }
             if cfg!(debug_assertions) {
                 println!();
@@ -134,35 +149,35 @@ impl CPU {
         self.set_negative_and_zero_process_status(data);
     }
 
-    fn bcc(&mut self, instruction: &Instruction) {
+    fn bcc(&mut self, _instruction: &Instruction) {
         self.branch(!self.processor_status.get_carry());
     }
 
-    fn bcs(&mut self, instruction: &Instruction) {
+    fn bcs(&mut self, _instruction: &Instruction) {
         self.branch(self.processor_status.get_carry());
     }
 
-    fn beq(&mut self, instruction: &Instruction) {
+    fn beq(&mut self, _instruction: &Instruction) {
         self.branch(self.processor_status.get_zero());
     }
 
-    fn bmi(&mut self, instruction: &Instruction) {
+    fn bmi(&mut self, _instruction: &Instruction) {
         self.branch(self.processor_status.get_negative());
     }
 
-    fn bne(&mut self, instruction: &Instruction) {
+    fn bne(&mut self, _instruction: &Instruction) {
         self.branch(!self.processor_status.get_zero())
     }
 
-    fn bpl(&mut self, instruction: &Instruction) {
+    fn bpl(&mut self, _instruction: &Instruction) {
         self.branch(!self.processor_status.get_negative())
     }
 
-    fn bvc(&mut self, instruction: &Instruction) {
+    fn bvc(&mut self, _instruction: &Instruction) {
         self.branch(!self.processor_status.get_overflow())
     }
 
-    fn bvs(&mut self, instruction: &Instruction) {
+    fn bvs(&mut self, _instruction: &Instruction) {
         self.branch(self.processor_status.get_overflow())
     }
 
@@ -173,19 +188,19 @@ impl CPU {
         self.processor_status.set_overflow(data & 0b01000000 > 0);
     }
 
-    fn clc(&mut self, instruction: &Instruction) {
+    fn clc(&mut self, _instruction: &Instruction) {
         self.processor_status.set_carry(false);
     }
 
-    fn cld(&mut self, instruction: &Instruction) {
+    fn cld(&mut self, _instruction: &Instruction) {
         self.processor_status.set_decimal(false);
     }
 
-    fn cli(&mut self, instruction: &Instruction) {
+    fn cli(&mut self, _instruction: &Instruction) {
         self.processor_status.set_interrupt(false);
     }
 
-    fn clv(&mut self, instruction: &Instruction) {
+    fn clv(&mut self, _instruction: &Instruction) {
         self.processor_status.set_overflow(false);
     }
 
@@ -212,12 +227,12 @@ impl CPU {
         self.set_negative_and_zero_process_status(new_value)
     }
 
-    fn dex(&mut self, instruction: &Instruction) {
+    fn dex(&mut self, _instruction: &Instruction) {
         self.x = self.x.wrapping_sub(1);
         self.set_negative_and_zero_process_status(self.x);
     }
 
-    fn dey(&mut self, instruction: &Instruction) {
+    fn dey(&mut self, _instruction: &Instruction) {
         self.y = self.y.wrapping_sub(1);
         self.set_negative_and_zero_process_status(self.y)
     }
@@ -235,12 +250,12 @@ impl CPU {
         self.set_negative_and_zero_process_status(new_value)
     }
 
-    fn inx(&mut self, instruction: &Instruction) {
+    fn inx(&mut self, _instruction: &Instruction) {
         self.x = self.x.wrapping_add(1);
         self.set_negative_and_zero_process_status(self.x);
     }
 
-    fn iny(&mut self, instruction: &Instruction) {
+    fn iny(&mut self, _instruction: &Instruction) {
         self.y = self.y.wrapping_add(1);
         self.set_negative_and_zero_process_status(self.y);
     }
@@ -304,12 +319,64 @@ impl CPU {
         self.set_negative_and_zero_process_status(data);
     }
 
-    fn nop(&mut self, instruction: &Instruction) {
+    fn nop(&mut self, _instruction: &Instruction) {
         self.program_counter = self.program_counter.wrapping_add(1);
     }
 
-    fn rts(&mut self, instruction: &Instruction) {
+    fn ora(&mut self, instruction: &Instruction) {
+        let data = self.read_byte(&instruction.memory_addressing_mode);
+        self.a |= data;
+        self.set_negative_and_zero_process_status(self.a);
+    }
+
+    fn pha(&mut self, _instruction: &Instruction) {
+        self.push(self.a);
+    }
+
+    fn php(&mut self, _instruction: &Instruction) {
+        self.push(self.processor_status.inner);
+    }
+
+    fn pla(&mut self, instruction: &Instruction) {
+        let data = self.pop();
+        self.write_byte(&instruction.memory_addressing_mode, data)
+    }
+
+    fn plp(&mut self, _instruction: &Instruction) {
+        self.processor_status.inner = self.pop();
+    }
+
+    fn rol(&mut self, instruction: &Instruction) {
+        let mut data = self.read_byte(&instruction.memory_addressing_mode);
+        let carry = self.processor_status.get_carry();
+        self.processor_status
+            .set_carry(data & 0b0100_0000 == 0b0100_0000);
+        data <<= 1;
+        if carry {
+            data |= 0b0000_0001
+        }
+        self.write_byte(&instruction.memory_addressing_mode, data);
+    }
+
+    fn ror(&mut self, instruction: &Instruction) {
+        let mut data = self.read_byte(&instruction.memory_addressing_mode);
+        let carry = self.processor_status.get_carry();
+        self.processor_status
+            .set_carry(data & 0b0000_0001 == 0b0000_0001);
+        data >>= 1;
+        if carry {
+            data |= 0b1000_0000
+        }
+        self.write_byte(&instruction.memory_addressing_mode, data);
+    }
+
+    fn rts(&mut self, _instruction: &Instruction) {
         self.program_counter = self.pop_word() + 1;
+    }
+
+    fn rti(&mut self, _instruction: &Instruction) {
+        self.processor_status.inner = self.pop();
+        self.program_counter = self.pop_word();
     }
 
     fn sbc(&mut self, instruction: &Instruction) {
@@ -317,29 +384,55 @@ impl CPU {
         self.a = self.add(self.a, (data as i8).wrapping_neg().wrapping_sub(1) as u8)
     }
 
-    fn sec(&mut self, instruction: &Instruction) {
+    fn sec(&mut self, _instruction: &Instruction) {
         self.processor_status.set_carry(true);
+    }
+
+    fn sed(&mut self, _instruction: &Instruction) {
+        self.processor_status.set_decimal(true);
+    }
+
+    fn sei(&mut self, _instruction: &Instruction) {
+        self.processor_status.set_interrupt(true);
     }
 
     fn sta(&mut self, instruction: &Instruction) {
         self.write_byte(&instruction.memory_addressing_mode, self.a);
     }
 
-    fn tax(&mut self, instruction: &Instruction) {
+    fn stx(&mut self, instruction: &Instruction) {
+        self.write_byte(&instruction.memory_addressing_mode, self.x);
+    }
+
+    fn sty(&mut self, instruction: &Instruction) {
+        self.write_byte(&instruction.memory_addressing_mode, self.y);
+    }
+
+    fn tax(&mut self, _instruction: &Instruction) {
         self.x = self.a;
         self.set_negative_and_zero_process_status(self.x);
     }
 
-    fn txs(&mut self, instruction: &Instruction) {
+    fn tay(&mut self, _instruction: &Instruction) {
+        self.y = self.a;
+        self.set_negative_and_zero_process_status(self.y);
+    }
+
+    fn tya(&mut self, _instruction: &Instruction) {
+        self.a = self.y;
+        self.set_negative_and_zero_process_status(self.a);
+    }
+
+    fn txs(&mut self, _instruction: &Instruction) {
         self.stack_pointer = self.x;
     }
 
-    fn txa(&mut self, instruction: &Instruction) {
+    fn txa(&mut self, _instruction: &Instruction) {
         self.a = self.x;
         self.set_negative_and_zero_process_status(self.a);
     }
 
-    fn tsx(&mut self, instruction: &Instruction) {
+    fn tsx(&mut self, _instruction: &Instruction) {
         self.x = self.stack_pointer;
         self.set_negative_and_zero_process_status(self.x)
     }
@@ -372,6 +465,7 @@ impl CPU {
         match memory_addressing_mode {
             MemoryAdressingMode::Accumulator => {
                 self.a = byte;
+                self.set_negative_and_zero_process_status(self.a)
             }
             _ => {
                 let addr = self.get_address(memory_addressing_mode);

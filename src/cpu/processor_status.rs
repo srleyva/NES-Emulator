@@ -1,6 +1,6 @@
 #[derive(Default)]
 pub struct ProcesssorStatus {
-    inner: u8,
+    pub(crate) inner: u8,
 }
 
 impl std::fmt::Display for ProcesssorStatus {
