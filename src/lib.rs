@@ -11,6 +11,9 @@ use sdl2::{event::Event, keyboard::Keycode, pixels::Color, pixels::PixelFormatEn
 
 fn handle_user_input(cpu: &mut CPU, event_pump: &mut EventPump) {
     for event in event_pump.poll_iter() {
+        if cfg!(debug_assertions) {
+            println!("{:?}", event);
+        }
         match event {
             Event::Quit { .. }
             | Event::KeyDown {

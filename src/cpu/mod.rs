@@ -19,6 +19,12 @@ pub struct CPU {
     pub(crate) bus: MemoryBus,
 }
 
+impl std::fmt::Display for CPU {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Registers: a=[{:#04X?}] x=[{:#04X?}] y=[{:#04X?}] StackPointer=[{:#04X?}] ProgramCounter=[{:#04X?}, ProcessorStatus=[{}]]", self.a, self.x, self.y, self.stack_pointer, self.program_counter, self.processor_status)
+    }
+}
+
 impl CPU {
     pub fn new(rom: MemoryBus) -> Self {
         let mut cpu = Self {
@@ -46,7 +52,7 @@ impl CPU {
         loop {
             let instruction = get_instruction_from_opcode(self.read_next_byte());
             if cfg!(debug_assertions) {
-                println!("{}", instruction);
+                print!("{}", instruction);
             }
             match instruction.instruction_type {
                 InstructionType::AND => self.and(instruction),
@@ -87,12 +93,17 @@ impl CPU {
                 InstructionType::NOP => self.nop(instruction),
                 InstructionType::RTS => self.rts(instruction),
                 InstructionType::STA => self.sta(instruction),
+                InstructionType::SBC => self.sbc(instruction),
+                InstructionType::SEC => self.sec(instruction),
                 InstructionType::TAX => self.tax(instruction),
                 InstructionType::TSX => self.tsx(instruction),
                 InstructionType::TXS => self.txs(instruction),
                 InstructionType::TXA => self.txa(instruction),
-                InstructionType::NotImplemented => panic!("BAD Instruction"),
                 _ => println!("Instruction: {} not implemented", instruction),
+            }
+            if cfg!(debug_assertions) {
+                println!();
+                println!("CPU: {}", self);
             }
             callback(self);
         }
@@ -264,7 +275,7 @@ impl CPU {
         // so that the pc is incremented appropratiely
         let addr = self.get_address(&instruction.memory_addressing_mode);
 
-        let return_point = self.program_counter.wrapping_sub(1);
+        let return_point = self.program_counter - 1;
         self.push_word(return_point);
 
         self.program_counter = addr;
@@ -288,7 +299,7 @@ impl CPU {
     fn lsr(&mut self, instruction: &Instruction) {
         let mut data = self.read_byte(&instruction.memory_addressing_mode);
         self.processor_status.set_carry(data & 0b0000_0001 == 1);
-        data &= 0b1011_1111;
+        data >>= 1;
         self.write_byte(&instruction.memory_addressing_mode, data);
         self.set_negative_and_zero_process_status(data);
     }
@@ -298,7 +309,16 @@ impl CPU {
     }
 
     fn rts(&mut self, instruction: &Instruction) {
-        self.program_counter = self.pop_word().wrapping_add(1);
+        self.program_counter = self.pop_word() + 1;
+    }
+
+    fn sbc(&mut self, instruction: &Instruction) {
+        let data = self.read_byte(&instruction.memory_addressing_mode);
+        self.a = self.add(self.a, (data as i8).wrapping_neg().wrapping_sub(1) as u8)
+    }
+
+    fn sec(&mut self, instruction: &Instruction) {
+        self.processor_status.set_carry(true);
     }
 
     fn sta(&mut self, instruction: &Instruction) {
@@ -321,6 +341,7 @@ impl CPU {
 
     fn tsx(&mut self, instruction: &Instruction) {
         self.x = self.stack_pointer;
+        self.set_negative_and_zero_process_status(self.x)
     }
 
     /*
@@ -328,20 +349,26 @@ impl CPU {
     */
 
     fn read_byte(&mut self, memory_addressing_mode: &MemoryAdressingMode) -> u8 {
-        return match memory_addressing_mode {
+        let byte = match memory_addressing_mode {
             MemoryAdressingMode::Accumulator => self.a,
+            MemoryAdressingMode::Immediate => self.read_next_byte(),
             _ => {
                 let addr = self.get_address(memory_addressing_mode);
-                return if addr == self.program_counter {
-                    self.read_next_byte()
-                } else {
-                    self.bus.read_byte(addr)
-                };
+                self.bus.read_byte(addr)
             }
         };
+
+        if cfg!(debug_assertions) {
+            print!(" Read Data: {:#04X?}", byte);
+        }
+
+        byte
     }
 
     fn write_byte(&mut self, memory_addressing_mode: &MemoryAdressingMode, byte: u8) {
+        if cfg!(debug_assertions) {
+            print!(" Write Data: {:#04X?}", byte);
+        }
         match memory_addressing_mode {
             MemoryAdressingMode::Accumulator => {
                 self.a = byte;
@@ -354,23 +381,23 @@ impl CPU {
     }
 
     fn get_address(&mut self, memory_addressing_mode: &MemoryAdressingMode) -> u16 {
-        return match memory_addressing_mode {
-            MemoryAdressingMode::Implied => self.program_counter,
-            MemoryAdressingMode::Immediate => self.program_counter,
+        let addr = match memory_addressing_mode {
             MemoryAdressingMode::Absolute => self.absolute_address(),
             MemoryAdressingMode::AbsoluteX => self.absolute_x_address(),
             MemoryAdressingMode::AbsoluteY => self.absolute_y_address(),
             MemoryAdressingMode::ZeroPage => self.zero_page_address(),
             MemoryAdressingMode::ZeroPageX => self.zero_page_x_address(),
             MemoryAdressingMode::ZeroPageY => self.zero_page_y_address(),
-            MemoryAdressingMode::Indirect => self.indirect_address(),
             MemoryAdressingMode::IndirectX => self.indirect_x_address(),
-            MemoryAdressingMode::IndirectY => self.absolute_y_address(),
+            MemoryAdressingMode::IndirectY => self.indirect_y_address(),
             MemoryAdressingMode::Relative => panic!("Look up not supported for relative"),
-            MemoryAdressingMode::Accumulator => {
-                panic!("This does not refer to memory but register a")
-            }
+            _ => panic!("Not Supported"),
         };
+        if cfg!(debug_assertions) {
+            print!(" Addr: {:#04X?}", addr)
+        }
+
+        addr
     }
 
     fn absolute_address(&mut self) -> u16 {
@@ -390,28 +417,28 @@ impl CPU {
     }
 
     fn zero_page_x_address(&mut self) -> u16 {
-        self.zero_page_address().wrapping_add(self.x as u16) as u16
+        self.read_next_byte().wrapping_add(self.x) as u16
     }
 
     fn zero_page_y_address(&mut self) -> u16 {
-        self.zero_page_address().wrapping_add(self.y as u16) as u16
-    }
-
-    fn indirect_address(&mut self) -> u16 {
-        let ptr = self.absolute_address();
-        self.bus.read_byte(ptr) as u16 | (self.bus.read_byte(ptr.wrapping_add(1)) as u16) << 8
+        self.read_next_byte().wrapping_add(self.y) as u16
     }
 
     fn indirect_x_address(&mut self) -> u16 {
-        let ptr = self.zero_page_address().wrapping_add(self.x as u16);
-        self.bus.read_byte(ptr) as u16 | (self.bus.read_byte(ptr.wrapping_add(1)) as u16) << 8
+        let base = self.read_next_byte();
+        let ptr: u8 = (base as u8).wrapping_add(self.x);
+        let lo = self.bus.read_byte(ptr as u16);
+        let hi = self.bus.read_byte(ptr.wrapping_add(1) as u16);
+        (hi as u16) << 8 | (lo as u16)
     }
 
     fn indirect_y_address(&mut self) -> u16 {
-        let ptr = self.zero_page_address();
-        let addr =
-            self.bus.read_byte(ptr) as u16 | (self.bus.read_byte(ptr.wrapping_add(1)) as u16) << 8;
-        addr.wrapping_add(self.y as u16)
+        let base = self.read_next_byte();
+        let lo = self.bus.read_byte(base as u16);
+        let hi = self.bus.read_byte((base as u8).wrapping_add(1) as u16);
+        let deref_base = (hi as u16) << 8 | (lo as u16);
+        let deref = deref_base.wrapping_add(self.y as u16);
+        deref
     }
 
     /*
@@ -428,7 +455,6 @@ impl CPU {
     fn branch(&mut self, jump: bool) {
         let offset = self.read_next_byte() as i8;
         if jump {
-            let new_addr = self.program_counter.wrapping_add(offset as u16);
             self.program_counter = self.program_counter.wrapping_add(offset as u16);
         }
     }

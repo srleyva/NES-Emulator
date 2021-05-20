@@ -78,6 +78,7 @@ pub enum InstructionType {
     TYA,
 }
 
+#[derive(Debug)]
 pub enum MemoryAdressingMode {
     Immediate,
     Implied,
@@ -108,7 +109,11 @@ pub struct Instruction {
 impl std::fmt::Display for Instruction {
     #[cfg(debug_assertions)]
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Instruction {:#04X?}: {}", self.op_code, self.mnemonic)
+        write!(
+            f,
+            "Instruction {:#04X?}: {} {:?}",
+            self.op_code, self.mnemonic, self.memory_addressing_mode
+        )
     }
 
     #[cfg(not(debug_assertions))]
