@@ -3,10 +3,12 @@ mod bus;
 mod cpu;
 mod gamepad;
 mod ppu;
+mod rom;
 
 use bus::MemoryBus;
 use cpu::CPU;
 use rand::Rng;
+use rom::Rom;
 use sdl2::{event::Event, keyboard::Keycode, pixels::Color, pixels::PixelFormatEnum, EventPump};
 
 fn handle_user_input(cpu: &mut CPU, event_pump: &mut EventPump) {
@@ -80,12 +82,12 @@ fn read_screen_state(cpu: &CPU, frame: &mut [u8; 32 * 3 * 32]) -> bool {
     update
 }
 
-pub fn start_game(rom_path: &'static str) {
-    let mut cpu = CPU::new(MemoryBus::from_rom(rom_path));
-    cpu.start();
+pub fn start_game_from_rom_path(path: String) {
+    let rom = Rom::from_path(path).unwrap();
+    start_game_from_rom(rom);
 }
 
-pub fn start_game_from_bytes(bytes: Vec<u8>) {
+pub fn start_game_from_rom(rom: Rom) {
     // init sdl2
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
@@ -104,7 +106,7 @@ pub fn start_game_from_bytes(bytes: Vec<u8>) {
         .create_texture_target(PixelFormatEnum::RGB24, 32, 32)
         .unwrap();
 
-    let mut cpu = CPU::new(MemoryBus::new(bytes));
+    let mut cpu = CPU::new(MemoryBus::new(rom));
     cpu.reset_cpu();
 
     let mut screen_state = [0 as u8; 32 * 3 * 32];
