@@ -570,7 +570,7 @@ mod test {
     fn test_adc() {
         let mut cpu = CPU::new(MemoryBus::new(vec![0x69, 0x10, 0x00]));
         // Set the ROM start to default
-        cpu.program_counter = 0x8000;
+        cpu.program_counter = 0x0600;
         cpu.a = 0x00;
         cpu.start();
 
@@ -583,7 +583,7 @@ mod test {
     fn test_adc_carry() {
         let mut cpu = CPU::new(MemoryBus::new(vec![0x69, 0x10, 0x00]));
         // Set the ROM start to default
-        cpu.program_counter = 0x8000;
+        cpu.program_counter = 0x0600;
         cpu.a = 0xff;
         cpu.start();
 
@@ -596,7 +596,7 @@ mod test {
     fn test_asl() {
         let mut cpu = CPU::new(MemoryBus::new(vec![0x0a, 0x00]));
 
-        cpu.program_counter = 0x8000;
+        cpu.program_counter = 0x0600;
         cpu.a = 0b1111_1111;
         cpu.start();
 
@@ -608,7 +608,7 @@ mod test {
     fn test_asl_no_carry() {
         let mut cpu = CPU::new(MemoryBus::new(vec![0x0a, 0x00]));
 
-        cpu.program_counter = 0x8000;
+        cpu.program_counter = 0x0600;
         cpu.a = 0b0111_1111;
         cpu.start();
 
@@ -622,7 +622,7 @@ mod test {
             0x90, 0x02, 0x69, 0x01, 0x69, 0x01, 0x00,
         ]));
 
-        cpu.program_counter = 0x8000;
+        cpu.program_counter = 0x0600;
         cpu.processor_status.set_carry(true);
         cpu.start();
         assert_eq!(cpu.a, 0x03) // Carry is set so...it adds with a carry
@@ -634,7 +634,7 @@ mod test {
             0x90, 0x02, 0x69, 0x01, 0x69, 0x01, 0x00,
         ]));
 
-        cpu.program_counter = 0x8000;
+        cpu.program_counter = 0x0600;
         cpu.processor_status.set_carry(false);
         cpu.start();
         assert_eq!(cpu.a, 0x01)
@@ -645,7 +645,7 @@ mod test {
             0xb0, 0x02, 0x69, 0x01, 0x69, 0x01, 0x00,
         ]));
 
-        cpu.program_counter = 0x8000;
+        cpu.program_counter = 0x0600;
         cpu.processor_status.set_carry(true);
         cpu.start();
         assert_eq!(cpu.a, 0x02) // Carry is set so...it adds with a carry
@@ -657,7 +657,7 @@ mod test {
             0xb0, 0x02, 0x69, 0x01, 0x69, 0x01, 0x00,
         ]));
 
-        cpu.program_counter = 0x8000;
+        cpu.program_counter = 0x0600;
         cpu.processor_status.set_carry(false);
         cpu.start();
         assert_eq!(cpu.a, 0x02)
@@ -666,7 +666,7 @@ mod test {
     #[test]
     fn test_bit_zero() {
         let mut cpu = CPU::new(MemoryBus::new(vec![0x2c, 0xaa, 0x00]));
-        cpu.program_counter = 0x8000;
+        cpu.program_counter = 0x0600;
         cpu.a = 0b0111_1111;
         cpu.bus.write_byte(0xaa, 0b0000_0000);
         cpu.start();
@@ -679,7 +679,7 @@ mod test {
     #[test]
     fn test_bit_not_zero_overflow_carry() {
         let mut cpu = CPU::new(MemoryBus::new(vec![0x2c, 0xaa, 0x00]));
-        cpu.program_counter = 0x8000;
+        cpu.program_counter = 0x0600;
         cpu.a = 0b0111_1111;
         cpu.bus.write_byte(0xaa, 0b1100_0001);
         cpu.start();
@@ -693,7 +693,7 @@ mod test {
     fn test_inx_overflow() {
         let mut cpu = CPU::new(MemoryBus::new(vec![0xe8, 0xe8, 0x00]));
         // Set the ROM start to default
-        cpu.program_counter = 0x8000;
+        cpu.program_counter = 0x0600;
         cpu.x = 0xff;
         cpu.start();
 
@@ -704,22 +704,22 @@ mod test {
     fn test_read_next_byte() {
         let mut cpu = CPU::new(MemoryBus::new(vec![0x06, 0x12]));
         // Set the ROM start to default
-        cpu.program_counter = 0x8000;
+        cpu.program_counter = 0x0600;
 
         let byte = cpu.read_next_byte();
         assert_eq!(byte, 0x06);
-        assert_eq!(cpu.program_counter, 0x8001);
+        assert_eq!(cpu.program_counter, 0x0601);
 
         let byte = cpu.read_next_byte();
         assert_eq!(byte, 0x12);
-        assert_eq!(cpu.program_counter, 0x8002);
+        assert_eq!(cpu.program_counter, 0x0602);
     }
 
     #[test]
     fn test_ld() {
         let mut cpu = CPU::new(MemoryBus::new(vec![0xa9, 0xc5, 0x00]));
         // Set the ROM start to default
-        cpu.program_counter = 0x8000;
+        cpu.program_counter = 0x0600;
 
         cpu.start();
 
@@ -732,7 +732,7 @@ mod test {
     fn test_ld_from_memory() {
         let mut cpu = CPU::new(MemoryBus::new(vec![0xa5, 0x10, 0x00]));
         cpu.bus.write_byte(0x10, 0x55);
-        cpu.program_counter = 0x8000;
+        cpu.program_counter = 0x0600;
 
         cpu.start();
 
@@ -743,7 +743,7 @@ mod test {
     fn test_ld_zero() {
         let mut cpu = CPU::new(MemoryBus::new(vec![0xa9, 0x00, 0x00]));
         // Set the ROM start to default
-        cpu.program_counter = 0x8000;
+        cpu.program_counter = 0x0600;
 
         cpu.start();
         assert_eq!(cpu.processor_status.get_zero(), true)
@@ -753,7 +753,7 @@ mod test {
     fn test_tax_zero() {
         let mut cpu = CPU::new(MemoryBus::new(vec![0xaa, 0x00]));
         // Set the ROM start to default
-        cpu.program_counter = 0x8000;
+        cpu.program_counter = 0x0600;
 
         cpu.a = 0x00;
         cpu.start();
@@ -765,7 +765,7 @@ mod test {
     fn test_tax() {
         let mut cpu = CPU::new(MemoryBus::new(vec![0xaa, 0x00]));
         // Set the ROM start to default
-        cpu.program_counter = 0x8000;
+        cpu.program_counter = 0x0600;
 
         cpu.a = 0x01;
         cpu.start();
@@ -777,7 +777,7 @@ mod test {
     fn test_sta() {
         let mut cpu = CPU::new(MemoryBus::new(vec![0x85, 0x04, 0x00]));
         // Set the ROM start to default
-        cpu.program_counter = 0x8000;
+        cpu.program_counter = 0x0600;
 
         cpu.a = 0x10;
         cpu.start();
