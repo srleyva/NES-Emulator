@@ -8,3 +8,7 @@ Just messing around with building an NES Emulator.
 
 2. Pass the Rom path to the program
 
+```
+cargo run --release ./assets/snake.nes
+```
+
