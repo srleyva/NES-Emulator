@@ -21,11 +21,11 @@ impl MemoryBus {
     pub fn read_byte(&self, address: u16) -> u8 {
         match address {
             RAM..=RAM_MIRRORS_END => {
-                let mirror_down_addr = address & 0b00000111_11111111;
+                let mirror_down_addr = address & 0b0000_0111_1111_1111;
                 self.memory[mirror_down_addr as usize]
             }
             PPU_REGISTERS..=PPU_REGISTERS_MIRRORS_END => {
-                let _mirror_down_addr = address & 0b00100000_00000111;
+                let _mirror_down_addr = address & 0b0010_0000_0000_0111;
                 todo!("PPU is not supported yet")
             }
             0x8000..=0xFFFF => self.read_from_rom(address),
@@ -39,11 +39,11 @@ impl MemoryBus {
     pub fn write_byte(&mut self, address: u16, byte: u8) {
         match address {
             RAM..=RAM_MIRRORS_END => {
-                let mirror_down_addr = address & 0b00000111_11111111;
+                let mirror_down_addr = address & 0b0000_0111_1111_1111;
                 self.memory[mirror_down_addr as usize] = byte;
             }
             PPU_REGISTERS..=PPU_REGISTERS_MIRRORS_END => {
-                let _mirror_down_addr = address & 0b00100000_00000111;
+                let _mirror_down_addr = address & 0b0010_0000_0000_0111;
                 todo!("PPU is not supported yet")
             }
             0x8000..=0xFFFF => panic!("Attempted to write to ROM Address space"),
@@ -61,7 +61,7 @@ impl MemoryBus {
     }
 
     pub fn write_word(&mut self, address: u16, word: u16) {
-        let least_sig_bits = (word & 0b00000000_11111111) as u8;
+        let least_sig_bits = (word & 0b0000_0000_1111_1111) as u8;
         let most_sig_bits = (word >> 8) as u8;
         self.write_byte(address, least_sig_bits);
         self.write_byte(address + 1, most_sig_bits);
@@ -71,7 +71,7 @@ impl MemoryBus {
         address -= 0x8000;
         if self.rom.prg_rom.len() == 0x4000 && address >= 0x4000 {
             //mirror if needed
-            address = address % 0x4000;
+            address %= 0x4000;
         }
         self.rom.prg_rom[address as usize]
     }

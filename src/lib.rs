@@ -109,7 +109,7 @@ pub fn start_game_from_rom(rom: Rom) {
     let mut cpu = CPU::new(MemoryBus::new(rom));
     cpu.reset_cpu();
 
-    let mut screen_state = [0 as u8; 32 * 3 * 32];
+    let mut screen_state = [0_u8; 32 * 3 * 32];
     let mut rng = rand::thread_rng();
 
     cpu.start_with_callback(move |cpu| {

@@ -41,10 +41,6 @@ impl CPU {
         cpu
     }
 
-    pub fn start(&mut self) {
-        self.start_with_callback(|_| {});
-    }
-
     pub fn start_with_callback<F>(&mut self, mut callback: F)
     where
         F: FnMut(&mut CPU),
@@ -137,14 +133,14 @@ impl CPU {
     fn and(&mut self, instruction: &Instruction) {
         let data = self.read_byte(&instruction.memory_addressing_mode);
 
-        self.a = data & self.a;
+        self.a &= data;
         self.set_negative_and_zero_process_status(self.a)
     }
 
     fn asl(&mut self, instruction: &Instruction) {
         let mut data = self.read_byte(&instruction.memory_addressing_mode);
         self.processor_status.set_carry(data >> 7 == 1);
-        data = data << 1;
+        data <<= 1;
         self.write_byte(&instruction.memory_addressing_mode, data);
         self.set_negative_and_zero_process_status(data);
     }
@@ -238,7 +234,7 @@ impl CPU {
     }
 
     fn eor(&mut self, instruction: &Instruction) {
-        self.a = self.a ^ self.read_byte(&instruction.memory_addressing_mode);
+        self.a ^= self.read_byte(&instruction.memory_addressing_mode);
         self.set_negative_and_zero_process_status(self.a);
     }
 
@@ -531,8 +527,7 @@ impl CPU {
         let lo = self.bus.read_byte(base as u16);
         let hi = self.bus.read_byte((base as u8).wrapping_add(1) as u16);
         let deref_base = (hi as u16) << 8 | (lo as u16);
-        let deref = deref_base.wrapping_add(self.y as u16);
-        deref
+        deref_base.wrapping_add(self.y as u16)
     }
 
     /*
@@ -639,6 +634,10 @@ mod test {
         return MemoryBus::new(rom);
     }
 
+    pub fn start(cpu: &mut CPU) {
+        cpu.start_with_callback(|_| {});
+    }
+
     #[test]
     fn test_end_to_end() {
         let game_code = vec![
@@ -667,7 +666,7 @@ mod test {
             0x60,
         ];
         let mut cpu = CPU::new(fake_rom(game_code));
-        cpu.start();
+        start(&mut cpu);
     }
 
     #[test]
@@ -676,7 +675,7 @@ mod test {
         // Set the ROM start to default
         cpu.program_counter = 0x8000;
         cpu.a = 0x00;
-        cpu.start();
+        start(&mut cpu);
 
         assert_eq!(cpu.a, 0x10);
         assert!(!cpu.processor_status.get_carry());
@@ -689,7 +688,7 @@ mod test {
         // Set the ROM start to default
         cpu.program_counter = 0x8000;
         cpu.a = 0xff;
-        cpu.start();
+        start(&mut cpu);
 
         assert_eq!(cpu.a, 15);
         assert!(cpu.processor_status.get_carry());
@@ -702,7 +701,7 @@ mod test {
 
         cpu.program_counter = 0x8000;
         cpu.a = 0b1111_1111;
-        cpu.start();
+        start(&mut cpu);
 
         assert_eq!(cpu.a, 0b1111_1110);
         assert!(cpu.processor_status.get_carry());
@@ -714,7 +713,7 @@ mod test {
 
         cpu.program_counter = 0x8000;
         cpu.a = 0b0111_1111;
-        cpu.start();
+        start(&mut cpu);
 
         assert_eq!(cpu.a, 0b1111_1110);
         assert!(!cpu.processor_status.get_carry());
@@ -726,7 +725,7 @@ mod test {
 
         cpu.program_counter = 0x8000;
         cpu.processor_status.set_carry(true);
-        cpu.start();
+        start(&mut cpu);
         assert_eq!(cpu.a, 0x03) // Carry is set so...it adds with a carry
     }
 
@@ -736,7 +735,7 @@ mod test {
 
         cpu.program_counter = 0x8000;
         cpu.processor_status.set_carry(false);
-        cpu.start();
+        start(&mut cpu);
         assert_eq!(cpu.a, 0x01)
     }
     #[test]
@@ -745,7 +744,7 @@ mod test {
 
         cpu.program_counter = 0x8000;
         cpu.processor_status.set_carry(true);
-        cpu.start();
+        start(&mut cpu);
         assert_eq!(cpu.a, 0x02) // Carry is set so...it adds with a carry
     }
 
@@ -755,7 +754,7 @@ mod test {
 
         cpu.program_counter = 0x8000;
         cpu.processor_status.set_carry(false);
-        cpu.start();
+        start(&mut cpu);
         assert_eq!(cpu.a, 0x02)
     }
 
@@ -765,7 +764,7 @@ mod test {
         cpu.program_counter = 0x8000;
         cpu.a = 0b0111_1111;
         cpu.bus.write_byte(0xaa, 0b0000_0000);
-        cpu.start();
+        start(&mut cpu);
 
         assert!(cpu.processor_status.get_zero());
         assert!(!cpu.processor_status.get_overflow());
@@ -778,7 +777,7 @@ mod test {
         cpu.program_counter = 0x8000;
         cpu.a = 0b0111_1111;
         cpu.bus.write_byte(0xaa, 0b1100_0001);
-        cpu.start();
+        start(&mut cpu);
 
         assert!(!cpu.processor_status.get_zero());
         assert!(cpu.processor_status.get_overflow());
@@ -791,7 +790,7 @@ mod test {
         // Set the ROM start to default
         cpu.program_counter = 0x8000;
         cpu.x = 0xff;
-        cpu.start();
+        start(&mut cpu);
 
         assert_eq!(cpu.x, 1);
     }
@@ -817,7 +816,7 @@ mod test {
         // Set the ROM start to default
         cpu.program_counter = 0x8000;
 
-        cpu.start();
+        start(&mut cpu);
 
         assert_eq!(cpu.a, 0xc5);
         assert_eq!(cpu.processor_status.get_zero(), false);
@@ -830,7 +829,7 @@ mod test {
         cpu.bus.write_byte(0x10, 0x55);
         cpu.program_counter = 0x8000;
 
-        cpu.start();
+        start(&mut cpu);
 
         assert_eq!(cpu.a, 0x55);
     }
@@ -841,7 +840,7 @@ mod test {
         // Set the ROM start to default
         cpu.program_counter = 0x8000;
 
-        cpu.start();
+        start(&mut cpu);
         assert_eq!(cpu.processor_status.get_zero(), true)
     }
 
@@ -852,7 +851,7 @@ mod test {
         cpu.program_counter = 0x8000;
 
         cpu.a = 0x00;
-        cpu.start();
+        start(&mut cpu);
         assert_eq!(cpu.x, cpu.a);
         assert_eq!(cpu.processor_status.get_zero(), true)
     }
@@ -864,7 +863,7 @@ mod test {
         cpu.program_counter = 0x8000;
 
         cpu.a = 0x01;
-        cpu.start();
+        start(&mut cpu);
         assert_eq!(cpu.x, cpu.a);
         assert_eq!(cpu.processor_status.get_zero(), false)
     }
@@ -876,7 +875,7 @@ mod test {
         cpu.program_counter = 0x8000;
 
         cpu.a = 0x10;
-        cpu.start();
+        start(&mut cpu);
 
         assert_eq!(cpu.a, cpu.bus.read_byte(0x04));
     }

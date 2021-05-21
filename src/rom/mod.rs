@@ -16,8 +16,8 @@ pub struct Rom {
 }
 
 impl Rom {
-    pub fn new(raw: &Vec<u8>) -> Result<Rom, String> {
-        if &raw[0..4] != [0x4e, 0x45, 0x53, 0x1a]
+    pub fn new(raw: &[u8]) -> Result<Rom, String> {
+        if raw[0..4] != [0x4e, 0x45, 0x53, 0x1a]
         /* Magic String: NES */
         {
             return Err("File is not in iNES file format".to_string());
@@ -49,8 +49,8 @@ impl Rom {
         Ok(Rom {
             prg_rom: raw[prg_rom_start..(prg_rom_start + prg_rom_size)].to_vec(),
             chr_rom: raw[chr_rom_start..(chr_rom_start + chr_rom_size)].to_vec(),
-            mapper: mapper,
-            screen_mirroring: screen_mirroring,
+            mapper,
+            screen_mirroring,
         })
     }
 

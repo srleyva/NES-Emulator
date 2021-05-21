@@ -31,86 +31,86 @@ impl ProcesssorStatus {
     7 - Negative
     */
     pub fn get_carry(&self) -> bool {
-        return self.inner & 0b0000_0001 == 0b0000_0001;
+        self.inner & 0b0000_0001 == 0b0000_0001
     }
 
     pub fn set_carry(&mut self, carry: bool) {
         if carry {
-            self.inner = self.inner | 0b0000_0001
+            self.inner |= 0b0000_0001
         } else {
-            self.inner = self.inner & 0b1111_1110
+            self.inner &= 0b1111_1110
         }
     }
 
     pub fn get_zero(&self) -> bool {
-        return self.inner & 0b0000_0010 == 0b0000_0010;
+        self.inner & 0b0000_0010 == 0b0000_0010
     }
 
     pub fn set_zero(&mut self, zero: bool) {
         if zero {
-            self.inner = self.inner | 0b0000_0010
+            self.inner |= 0b0000_0010
         } else {
-            self.inner = self.inner & 0b1111_1101
+            self.inner &= 0b1111_1101
         }
     }
 
     pub fn get_interrupt(&self) -> bool {
-        return self.inner & 0b0000_0100 == 0b0000_0100;
+        self.inner & 0b0000_0100 == 0b0000_0100
     }
 
     pub fn set_interrupt(&mut self, interrupt: bool) {
         if interrupt {
-            self.inner = self.inner | 0b0000_0100
+            self.inner |= 0b0000_0100
         } else {
-            self.inner = self.inner & 0b1111_1011
+            self.inner &= 0b1111_1011
         }
     }
 
     pub fn get_decimal(&self) -> bool {
-        return self.inner & 0b0000_1000 == 0b0000_1000;
+        self.inner & 0b0000_1000 == 0b0000_1000
     }
 
     pub fn set_decimal(&mut self, decimal: bool) {
         if decimal {
-            self.inner = self.inner | 0b0000_1000
+            self.inner |= 0b0000_1000
         } else {
-            self.inner = self.inner & 0b1111_0111
+            self.inner &= 0b1111_0111
         }
     }
 
     pub fn get_break(&self) -> bool {
-        return self.inner & 0b0001_0000 == 0b0001_0000;
+        self.inner & 0b0001_0000 == 0b0001_0000
     }
 
     pub fn set_break(&mut self, brk: bool) {
         if brk {
-            self.inner = self.inner | 0b0001_0000
+            self.inner |= 0b0001_0000
         } else {
-            self.inner = self.inner & 0b1110_1111
+            self.inner &= 0b1110_1111
         }
     }
 
     pub fn get_overflow(&self) -> bool {
-        return self.inner & 0b0100_0000 == 0b0100_0000;
+        self.inner & 0b0100_0000 == 0b0100_0000
     }
 
     pub fn set_overflow(&mut self, overflow: bool) {
         if overflow {
-            self.inner = self.inner | 0b0100_0000
+            self.inner |= 0b0100_0000
         } else {
-            self.inner = self.inner & 0b1011_1111
+            self.inner &= 0b1011_1111
         }
     }
 
     pub fn get_negative(&self) -> bool {
-        return self.inner & 0b1000_0000 == 0b1000_0000;
+        self.inner & 0b1000_0000 == 0b1000_0000
     }
 
     pub fn set_negative(&mut self, brk: bool) {
         if brk {
-            self.inner = self.inner | 0b1000_0000
+            self.inner |= 0b1000_0000
         } else {
-            self.inner = self.inner & 0b0111_1111
+            self.inner &= 0b0111_1111
         }
     }
 
