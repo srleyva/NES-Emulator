@@ -77,6 +77,7 @@ impl MemoryBus {
     }
 }
 
+#[cfg(test)]
 mod test {
     use super::super::rom::Mirroring;
     use super::*;
