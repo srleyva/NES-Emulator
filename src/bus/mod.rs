@@ -78,21 +78,32 @@ impl MemoryBus {
 }
 
 mod test {
+    use super::super::rom::Mirroring;
     use super::*;
 
     #[test]
     fn test_write_read_word() {
-        let mut memory_bus = MemoryBus::new(vec![]);
-        memory_bus.write_word(0x8001, 0xFF);
-        let word = memory_bus.read_word(0x8001);
+        let mut memory_bus = MemoryBus::new(Rom {
+            prg_rom: vec![],
+            chr_rom: vec![],
+            mapper: 0,
+            screen_mirroring: Mirroring::Horizontal,
+        });
+        memory_bus.write_word(0x800, 0xFF);
+        let word = memory_bus.read_word(0x800);
         assert_eq!(word, 0xFF)
     }
 
     #[test]
     fn test_write_read_byte() {
-        let mut memory_bus = MemoryBus::new(vec![]);
-        memory_bus.write_byte(0x8001, 0x01);
-        let word = memory_bus.read_byte(0x8001);
+        let mut memory_bus = MemoryBus::new(Rom {
+            prg_rom: vec![],
+            chr_rom: vec![],
+            mapper: 0,
+            screen_mirroring: Mirroring::Horizontal,
+        });
+        memory_bus.write_byte(0x800, 0x01);
+        let word = memory_bus.read_byte(0x800);
         assert_eq!(word, 0x01)
     }
 }

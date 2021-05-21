@@ -624,10 +624,24 @@ impl CPU {
 
 #[cfg(test)]
 mod test {
+    use super::super::rom::{Mirroring, Rom};
     use super::*;
 
-    fn fake_rom() -> MemoryBus {
-        return MemoryBus::new(vec![
+    fn fake_rom(game_code: Vec<u8>) -> MemoryBus {
+        let mut code = [0 as u8; 0x7FFF].to_vec();
+        code[0x00..game_code.len()].copy_from_slice(&game_code);
+        let rom = Rom {
+            prg_rom: code,
+            chr_rom: vec![],
+            mapper: 0,
+            screen_mirroring: Mirroring::Horizontal,
+        };
+        return MemoryBus::new(rom);
+    }
+
+    #[test]
+    fn test_end_to_end() {
+        let game_code = vec![
             0x20, 0x06, 0x06, 0x20, 0x38, 0x06, 0x20, 0x0d, 0x06, 0x20, 0x2a, 0x06, 0x60, 0xa9,
             0x02, 0x85, 0x02, 0xa9, 0x04, 0x85, 0x03, 0xa9, 0x11, 0x85, 0x10, 0xa9, 0x10, 0x85,
             0x12, 0xa9, 0x0f, 0x85, 0x14, 0xa9, 0x04, 0x85, 0x11, 0x85, 0x13, 0x85, 0x15, 0x60,
@@ -651,20 +665,16 @@ mod test {
             0x07, 0xa0, 0x00, 0xa5, 0xfe, 0x91, 0x00, 0x60, 0xa6, 0x03, 0xa9, 0x00, 0x81, 0x10,
             0xa2, 0x00, 0xa9, 0x01, 0x81, 0x10, 0x60, 0xa2, 0x00, 0xea, 0xea, 0xca, 0xd0, 0xfb,
             0x60,
-        ]);
-    }
-
-    #[test]
-    fn test_end_to_end() {
-        let mut cpu = CPU::new(fake_rom());
+        ];
+        let mut cpu = CPU::new(fake_rom(game_code));
         cpu.start();
     }
 
     #[test]
     fn test_adc() {
-        let mut cpu = CPU::new(MemoryBus::new(vec![0x69, 0x10, 0x00]));
+        let mut cpu = CPU::new(fake_rom(vec![0x69, 0x10, 0x00]));
         // Set the ROM start to default
-        cpu.program_counter = 0x0600;
+        cpu.program_counter = 0x8000;
         cpu.a = 0x00;
         cpu.start();
 
@@ -675,9 +685,9 @@ mod test {
 
     #[test]
     fn test_adc_carry() {
-        let mut cpu = CPU::new(MemoryBus::new(vec![0x69, 0x10, 0x00]));
+        let mut cpu = CPU::new(fake_rom(vec![0x69, 0x10, 0x00]));
         // Set the ROM start to default
-        cpu.program_counter = 0x0600;
+        cpu.program_counter = 0x8000;
         cpu.a = 0xff;
         cpu.start();
 
@@ -688,9 +698,9 @@ mod test {
 
     #[test]
     fn test_asl() {
-        let mut cpu = CPU::new(MemoryBus::new(vec![0x0a, 0x00]));
+        let mut cpu = CPU::new(fake_rom(vec![0x0a, 0x00]));
 
-        cpu.program_counter = 0x0600;
+        cpu.program_counter = 0x8000;
         cpu.a = 0b1111_1111;
         cpu.start();
 
@@ -700,9 +710,9 @@ mod test {
 
     #[test]
     fn test_asl_no_carry() {
-        let mut cpu = CPU::new(MemoryBus::new(vec![0x0a, 0x00]));
+        let mut cpu = CPU::new(fake_rom(vec![0x0a, 0x00]));
 
-        cpu.program_counter = 0x0600;
+        cpu.program_counter = 0x8000;
         cpu.a = 0b0111_1111;
         cpu.start();
 
@@ -712,11 +722,9 @@ mod test {
 
     #[test]
     fn test_bcc_carry() {
-        let mut cpu = CPU::new(MemoryBus::new(vec![
-            0x90, 0x02, 0x69, 0x01, 0x69, 0x01, 0x00,
-        ]));
+        let mut cpu = CPU::new(fake_rom(vec![0x90, 0x02, 0x69, 0x01, 0x69, 0x01, 0x00]));
 
-        cpu.program_counter = 0x0600;
+        cpu.program_counter = 0x8000;
         cpu.processor_status.set_carry(true);
         cpu.start();
         assert_eq!(cpu.a, 0x03) // Carry is set so...it adds with a carry
@@ -724,22 +732,18 @@ mod test {
 
     #[test]
     fn test_bcc_no_carry() {
-        let mut cpu = CPU::new(MemoryBus::new(vec![
-            0x90, 0x02, 0x69, 0x01, 0x69, 0x01, 0x00,
-        ]));
+        let mut cpu = CPU::new(fake_rom(vec![0x90, 0x02, 0x69, 0x01, 0x69, 0x01, 0x00]));
 
-        cpu.program_counter = 0x0600;
+        cpu.program_counter = 0x8000;
         cpu.processor_status.set_carry(false);
         cpu.start();
         assert_eq!(cpu.a, 0x01)
     }
     #[test]
     fn test_bcs_carry() {
-        let mut cpu = CPU::new(MemoryBus::new(vec![
-            0xb0, 0x02, 0x69, 0x01, 0x69, 0x01, 0x00,
-        ]));
+        let mut cpu = CPU::new(fake_rom(vec![0xb0, 0x02, 0x69, 0x01, 0x69, 0x01, 0x00]));
 
-        cpu.program_counter = 0x0600;
+        cpu.program_counter = 0x8000;
         cpu.processor_status.set_carry(true);
         cpu.start();
         assert_eq!(cpu.a, 0x02) // Carry is set so...it adds with a carry
@@ -747,11 +751,9 @@ mod test {
 
     #[test]
     fn test_bcs_no_carry() {
-        let mut cpu = CPU::new(MemoryBus::new(vec![
-            0xb0, 0x02, 0x69, 0x01, 0x69, 0x01, 0x00,
-        ]));
+        let mut cpu = CPU::new(fake_rom(vec![0xb0, 0x02, 0x69, 0x01, 0x69, 0x01, 0x00]));
 
-        cpu.program_counter = 0x0600;
+        cpu.program_counter = 0x8000;
         cpu.processor_status.set_carry(false);
         cpu.start();
         assert_eq!(cpu.a, 0x02)
@@ -759,8 +761,8 @@ mod test {
 
     #[test]
     fn test_bit_zero() {
-        let mut cpu = CPU::new(MemoryBus::new(vec![0x2c, 0xaa, 0x00]));
-        cpu.program_counter = 0x0600;
+        let mut cpu = CPU::new(fake_rom(vec![0x2c, 0xaa, 0x00]));
+        cpu.program_counter = 0x8000;
         cpu.a = 0b0111_1111;
         cpu.bus.write_byte(0xaa, 0b0000_0000);
         cpu.start();
@@ -772,8 +774,8 @@ mod test {
 
     #[test]
     fn test_bit_not_zero_overflow_carry() {
-        let mut cpu = CPU::new(MemoryBus::new(vec![0x2c, 0xaa, 0x00]));
-        cpu.program_counter = 0x0600;
+        let mut cpu = CPU::new(fake_rom(vec![0x2c, 0xaa, 0x00]));
+        cpu.program_counter = 0x8000;
         cpu.a = 0b0111_1111;
         cpu.bus.write_byte(0xaa, 0b1100_0001);
         cpu.start();
@@ -785,9 +787,9 @@ mod test {
 
     #[test]
     fn test_inx_overflow() {
-        let mut cpu = CPU::new(MemoryBus::new(vec![0xe8, 0xe8, 0x00]));
+        let mut cpu = CPU::new(fake_rom(vec![0xe8, 0xe8, 0x00]));
         // Set the ROM start to default
-        cpu.program_counter = 0x0600;
+        cpu.program_counter = 0x8000;
         cpu.x = 0xff;
         cpu.start();
 
@@ -796,24 +798,24 @@ mod test {
 
     #[test]
     fn test_read_next_byte() {
-        let mut cpu = CPU::new(MemoryBus::new(vec![0x06, 0x12]));
+        let mut cpu = CPU::new(fake_rom(vec![0x06, 0x12]));
         // Set the ROM start to default
-        cpu.program_counter = 0x0600;
+        cpu.program_counter = 0x8000;
 
         let byte = cpu.read_next_byte();
         assert_eq!(byte, 0x06);
-        assert_eq!(cpu.program_counter, 0x0601);
+        assert_eq!(cpu.program_counter, 0x8001);
 
         let byte = cpu.read_next_byte();
         assert_eq!(byte, 0x12);
-        assert_eq!(cpu.program_counter, 0x0602);
+        assert_eq!(cpu.program_counter, 0x8002);
     }
 
     #[test]
     fn test_ld() {
-        let mut cpu = CPU::new(MemoryBus::new(vec![0xa9, 0xc5, 0x00]));
+        let mut cpu = CPU::new(fake_rom(vec![0xa9, 0xc5, 0x00]));
         // Set the ROM start to default
-        cpu.program_counter = 0x0600;
+        cpu.program_counter = 0x8000;
 
         cpu.start();
 
@@ -824,9 +826,9 @@ mod test {
 
     #[test]
     fn test_ld_from_memory() {
-        let mut cpu = CPU::new(MemoryBus::new(vec![0xa5, 0x10, 0x00]));
+        let mut cpu = CPU::new(fake_rom(vec![0xa5, 0x10, 0x00]));
         cpu.bus.write_byte(0x10, 0x55);
-        cpu.program_counter = 0x0600;
+        cpu.program_counter = 0x8000;
 
         cpu.start();
 
@@ -835,9 +837,9 @@ mod test {
 
     #[test]
     fn test_ld_zero() {
-        let mut cpu = CPU::new(MemoryBus::new(vec![0xa9, 0x00, 0x00]));
+        let mut cpu = CPU::new(fake_rom(vec![0xa9, 0x00, 0x00]));
         // Set the ROM start to default
-        cpu.program_counter = 0x0600;
+        cpu.program_counter = 0x8000;
 
         cpu.start();
         assert_eq!(cpu.processor_status.get_zero(), true)
@@ -845,9 +847,9 @@ mod test {
 
     #[test]
     fn test_tax_zero() {
-        let mut cpu = CPU::new(MemoryBus::new(vec![0xaa, 0x00]));
+        let mut cpu = CPU::new(fake_rom(vec![0xaa, 0x00]));
         // Set the ROM start to default
-        cpu.program_counter = 0x0600;
+        cpu.program_counter = 0x8000;
 
         cpu.a = 0x00;
         cpu.start();
@@ -857,9 +859,9 @@ mod test {
 
     #[test]
     fn test_tax() {
-        let mut cpu = CPU::new(MemoryBus::new(vec![0xaa, 0x00]));
+        let mut cpu = CPU::new(fake_rom(vec![0xaa, 0x00]));
         // Set the ROM start to default
-        cpu.program_counter = 0x0600;
+        cpu.program_counter = 0x8000;
 
         cpu.a = 0x01;
         cpu.start();
@@ -869,9 +871,9 @@ mod test {
 
     #[test]
     fn test_sta() {
-        let mut cpu = CPU::new(MemoryBus::new(vec![0x85, 0x04, 0x00]));
+        let mut cpu = CPU::new(fake_rom(vec![0x85, 0x04, 0x00]));
         // Set the ROM start to default
-        cpu.program_counter = 0x0600;
+        cpu.program_counter = 0x8000;
 
         cpu.a = 0x10;
         cpu.start();
@@ -882,7 +884,7 @@ mod test {
     #[test]
 
     fn test_stack() {
-        let mut cpu = CPU::new(MemoryBus::new(vec![0x85, 0x04, 0x00]));
+        let mut cpu = CPU::new(fake_rom(vec![0x85, 0x04, 0x00]));
         cpu.push(0x10);
         assert_eq!(cpu.pop(), 0x10);
 
