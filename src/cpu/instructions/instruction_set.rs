@@ -5,17 +5,19 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         "BRK",
         0x0,
         1,
-        0,
+        7,
         InstructionType::BRK,
-        MemoryAdressingMode::Implied
+        MemoryAdressingMode::Implied,
+        false
     ),
     instruction!(
         "ORA",
         0x1,
         2,
-        0,
+        6,
         InstructionType::ORA,
-        MemoryAdressingMode::IndirectX
+        MemoryAdressingMode::IndirectX,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -23,7 +25,8 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -31,7 +34,8 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -39,23 +43,26 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "ORA",
         0x5,
         2,
-        0,
+        3,
         InstructionType::ORA,
-        MemoryAdressingMode::ZeroPage
+        MemoryAdressingMode::ZeroPage,
+        false
     ),
     instruction!(
         "ASL",
         0x6,
         2,
-        0,
+        5,
         InstructionType::ASL,
-        MemoryAdressingMode::ZeroPage
+        MemoryAdressingMode::ZeroPage,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -63,31 +70,35 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "PHP",
         0x8,
         1,
-        0,
+        3,
         InstructionType::PHP,
-        MemoryAdressingMode::Implied
+        MemoryAdressingMode::Implied,
+        false
     ),
     instruction!(
         "ORA",
         0x9,
         2,
-        0,
+        2,
         InstructionType::ORA,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "ASL",
         0xa,
         1,
-        0,
+        2,
         InstructionType::ASL,
-        MemoryAdressingMode::Accumulator
+        MemoryAdressingMode::Accumulator,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -95,7 +106,8 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -103,23 +115,26 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "ORA",
         0xd,
         3,
-        0,
+        4,
         InstructionType::ORA,
-        MemoryAdressingMode::Absolute
+        MemoryAdressingMode::Absolute,
+        false
     ),
     instruction!(
         "ASL",
         0xe,
         3,
-        0,
+        6,
         InstructionType::ASL,
-        MemoryAdressingMode::Absolute
+        MemoryAdressingMode::Absolute,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -127,23 +142,26 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "BPL",
         0x10,
         2,
-        0,
+        2,
         InstructionType::BPL,
-        MemoryAdressingMode::Relative
+        MemoryAdressingMode::Relative,
+        true
     ),
     instruction!(
         "ORA",
         0x11,
         2,
-        0,
+        5,
         InstructionType::ORA,
-        MemoryAdressingMode::IndirectY
+        MemoryAdressingMode::IndirectY,
+        true
     ),
     instruction!(
         "NotImplemented",
@@ -151,7 +169,8 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -159,7 +178,8 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -167,23 +187,26 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "ORA",
         0x15,
         2,
-        0,
+        4,
         InstructionType::ORA,
-        MemoryAdressingMode::ZeroPageX
+        MemoryAdressingMode::ZeroPageX,
+        false
     ),
     instruction!(
         "ASL",
         0x16,
         2,
-        0,
+        6,
         InstructionType::ASL,
-        MemoryAdressingMode::ZeroPageX
+        MemoryAdressingMode::ZeroPageX,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -191,23 +214,26 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "CLC",
         0x18,
         1,
-        0,
+        2,
         InstructionType::CLC,
-        MemoryAdressingMode::Implied
+        MemoryAdressingMode::Implied,
+        false
     ),
     instruction!(
         "ORA",
         0x19,
         3,
-        0,
+        4,
         InstructionType::ORA,
-        MemoryAdressingMode::AbsoluteY
+        MemoryAdressingMode::AbsoluteY,
+        true
     ),
     instruction!(
         "NotImplemented",
@@ -215,7 +241,8 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -223,7 +250,8 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -231,23 +259,26 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "ORA",
         0x1d,
         3,
-        0,
+        4,
         InstructionType::ORA,
-        MemoryAdressingMode::AbsoluteX
+        MemoryAdressingMode::AbsoluteX,
+        true
     ),
     instruction!(
         "ASL",
         0x1e,
         3,
-        0,
+        7,
         InstructionType::ASL,
-        MemoryAdressingMode::AbsoluteX
+        MemoryAdressingMode::AbsoluteX,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -255,23 +286,26 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "JSR",
         0x20,
         3,
-        0,
+        6,
         InstructionType::JSR,
-        MemoryAdressingMode::Absolute
+        MemoryAdressingMode::Absolute,
+        false
     ),
     instruction!(
         "AND",
         0x21,
         2,
-        0,
+        6,
         InstructionType::AND,
-        MemoryAdressingMode::IndirectX
+        MemoryAdressingMode::IndirectX,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -279,7 +313,8 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -287,31 +322,35 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "BIT",
         0x24,
         2,
-        0,
+        3,
         InstructionType::BIT,
-        MemoryAdressingMode::ZeroPage
+        MemoryAdressingMode::ZeroPage,
+        false
     ),
     instruction!(
         "AND",
         0x25,
         2,
-        0,
+        3,
         InstructionType::AND,
-        MemoryAdressingMode::ZeroPage
+        MemoryAdressingMode::ZeroPage,
+        false
     ),
     instruction!(
         "ROL",
         0x26,
         2,
-        0,
+        5,
         InstructionType::ROL,
-        MemoryAdressingMode::ZeroPage
+        MemoryAdressingMode::ZeroPage,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -319,31 +358,35 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "PLP",
         0x28,
         1,
-        0,
+        4,
         InstructionType::PLP,
-        MemoryAdressingMode::Implied
+        MemoryAdressingMode::Implied,
+        false
     ),
     instruction!(
         "AND",
         0x29,
         2,
-        0,
+        2,
         InstructionType::AND,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "ROL",
         0x2a,
         1,
-        0,
+        2,
         InstructionType::ROL,
-        MemoryAdressingMode::Accumulator
+        MemoryAdressingMode::Accumulator,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -351,31 +394,35 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "BIT",
         0x2c,
         3,
-        0,
+        4,
         InstructionType::BIT,
-        MemoryAdressingMode::Absolute
+        MemoryAdressingMode::Absolute,
+        false
     ),
     instruction!(
         "AND",
         0x2d,
         3,
-        0,
+        4,
         InstructionType::AND,
-        MemoryAdressingMode::Absolute
+        MemoryAdressingMode::Absolute,
+        false
     ),
     instruction!(
         "ROL",
         0x2e,
         3,
-        0,
+        6,
         InstructionType::ROL,
-        MemoryAdressingMode::Absolute
+        MemoryAdressingMode::Absolute,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -383,23 +430,26 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "BMI",
         0x30,
         2,
-        0,
+        2,
         InstructionType::BMI,
-        MemoryAdressingMode::Relative
+        MemoryAdressingMode::Relative,
+        true
     ),
     instruction!(
         "AND",
         0x31,
         2,
-        0,
+        5,
         InstructionType::AND,
-        MemoryAdressingMode::IndirectY
+        MemoryAdressingMode::IndirectY,
+        true
     ),
     instruction!(
         "NotImplemented",
@@ -407,7 +457,8 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -415,7 +466,8 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -423,23 +475,26 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "AND",
         0x35,
         2,
-        0,
+        4,
         InstructionType::AND,
-        MemoryAdressingMode::ZeroPageX
+        MemoryAdressingMode::ZeroPageX,
+        false
     ),
     instruction!(
         "ROL",
         0x36,
         2,
-        0,
+        6,
         InstructionType::ROL,
-        MemoryAdressingMode::ZeroPageX
+        MemoryAdressingMode::ZeroPageX,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -447,23 +502,26 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "SEC",
         0x38,
         1,
-        0,
+        2,
         InstructionType::SEC,
-        MemoryAdressingMode::Implied
+        MemoryAdressingMode::Implied,
+        false
     ),
     instruction!(
         "AND",
         0x39,
         3,
-        0,
+        4,
         InstructionType::AND,
-        MemoryAdressingMode::AbsoluteY
+        MemoryAdressingMode::AbsoluteY,
+        true
     ),
     instruction!(
         "NotImplemented",
@@ -471,7 +529,8 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -479,7 +538,8 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -487,23 +547,26 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "AND",
         0x3d,
         3,
-        0,
+        4,
         InstructionType::AND,
-        MemoryAdressingMode::AbsoluteX
+        MemoryAdressingMode::AbsoluteX,
+        true
     ),
     instruction!(
         "ROL",
         0x3e,
         3,
-        0,
+        7,
         InstructionType::ROL,
-        MemoryAdressingMode::AbsoluteX
+        MemoryAdressingMode::AbsoluteX,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -511,23 +574,26 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "RTI",
         0x40,
         1,
-        0,
+        6,
         InstructionType::RTI,
-        MemoryAdressingMode::Implied
+        MemoryAdressingMode::Implied,
+        false
     ),
     instruction!(
         "EOR",
         0x41,
         2,
-        0,
+        6,
         InstructionType::EOR,
-        MemoryAdressingMode::IndirectX
+        MemoryAdressingMode::IndirectX,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -535,7 +601,8 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -543,7 +610,8 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -551,23 +619,26 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "EOR",
         0x45,
         2,
-        0,
+        3,
         InstructionType::EOR,
-        MemoryAdressingMode::ZeroPage
+        MemoryAdressingMode::ZeroPage,
+        false
     ),
     instruction!(
         "LSR",
         0x46,
         2,
-        0,
+        5,
         InstructionType::LSR,
-        MemoryAdressingMode::ZeroPage
+        MemoryAdressingMode::ZeroPage,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -575,31 +646,35 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "PHA",
         0x48,
         1,
-        0,
+        3,
         InstructionType::PHA,
-        MemoryAdressingMode::Implied
+        MemoryAdressingMode::Implied,
+        false
     ),
     instruction!(
         "EOR",
         0x49,
         2,
-        0,
+        2,
         InstructionType::EOR,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "LSR",
         0x4a,
         1,
-        0,
+        2,
         InstructionType::LSR,
-        MemoryAdressingMode::Accumulator
+        MemoryAdressingMode::Accumulator,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -607,31 +682,35 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "JMP",
         0x4c,
         3,
-        0,
+        3,
         InstructionType::JMP,
-        MemoryAdressingMode::Absolute
+        MemoryAdressingMode::Absolute,
+        false
     ),
     instruction!(
         "EOR",
         0x4d,
         3,
-        0,
+        4,
         InstructionType::EOR,
-        MemoryAdressingMode::Absolute
+        MemoryAdressingMode::Absolute,
+        false
     ),
     instruction!(
         "LSR",
         0x4e,
         3,
-        0,
+        6,
         InstructionType::LSR,
-        MemoryAdressingMode::Absolute
+        MemoryAdressingMode::Absolute,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -639,23 +718,26 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "BVC",
         0x50,
         2,
-        0,
+        2,
         InstructionType::BVC,
-        MemoryAdressingMode::Relative
+        MemoryAdressingMode::Relative,
+        true
     ),
     instruction!(
         "EOR",
         0x51,
         2,
-        0,
+        5,
         InstructionType::EOR,
-        MemoryAdressingMode::IndirectY
+        MemoryAdressingMode::IndirectY,
+        true
     ),
     instruction!(
         "NotImplemented",
@@ -663,7 +745,8 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -671,7 +754,8 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -679,23 +763,26 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "EOR",
         0x55,
         2,
-        0,
+        4,
         InstructionType::EOR,
-        MemoryAdressingMode::ZeroPageX
+        MemoryAdressingMode::ZeroPageX,
+        false
     ),
     instruction!(
         "LSR",
         0x56,
         2,
-        0,
+        6,
         InstructionType::LSR,
-        MemoryAdressingMode::ZeroPageX
+        MemoryAdressingMode::ZeroPageX,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -703,23 +790,26 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "CLI",
         0x58,
         1,
-        0,
+        2,
         InstructionType::CLI,
-        MemoryAdressingMode::Implied
+        MemoryAdressingMode::Implied,
+        false
     ),
     instruction!(
         "EOR",
         0x59,
         3,
-        0,
+        4,
         InstructionType::EOR,
-        MemoryAdressingMode::AbsoluteY
+        MemoryAdressingMode::AbsoluteY,
+        true
     ),
     instruction!(
         "NotImplemented",
@@ -727,7 +817,8 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -735,7 +826,8 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -743,23 +835,26 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "EOR",
         0x5d,
         3,
-        0,
+        4,
         InstructionType::EOR,
-        MemoryAdressingMode::AbsoluteX
+        MemoryAdressingMode::AbsoluteX,
+        true
     ),
     instruction!(
         "LSR",
         0x5e,
         3,
-        0,
+        7,
         InstructionType::LSR,
-        MemoryAdressingMode::AbsoluteX
+        MemoryAdressingMode::AbsoluteX,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -767,23 +862,26 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "RTS",
         0x60,
         1,
-        0,
+        6,
         InstructionType::RTS,
-        MemoryAdressingMode::Implied
+        MemoryAdressingMode::Implied,
+        false
     ),
     instruction!(
         "ADC",
         0x61,
         2,
-        0,
+        6,
         InstructionType::ADC,
-        MemoryAdressingMode::IndirectX
+        MemoryAdressingMode::IndirectX,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -791,7 +889,8 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -799,7 +898,8 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -807,23 +907,26 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "ADC",
         0x65,
         2,
-        0,
+        3,
         InstructionType::ADC,
-        MemoryAdressingMode::ZeroPage
+        MemoryAdressingMode::ZeroPage,
+        false
     ),
     instruction!(
         "ROR",
         0x66,
         2,
-        0,
+        5,
         InstructionType::ROR,
-        MemoryAdressingMode::ZeroPage
+        MemoryAdressingMode::ZeroPage,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -831,31 +934,35 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "PLA",
         0x68,
         1,
-        0,
+        4,
         InstructionType::PLA,
-        MemoryAdressingMode::Implied
+        MemoryAdressingMode::Implied,
+        false
     ),
     instruction!(
         "ADC",
         0x69,
         2,
-        0,
+        2,
         InstructionType::ADC,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "ROR",
         0x6a,
         1,
-        0,
+        2,
         InstructionType::ROR,
-        MemoryAdressingMode::Accumulator
+        MemoryAdressingMode::Accumulator,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -863,31 +970,35 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "JMP",
         0x6c,
         3,
-        0,
+        5,
         InstructionType::JMP,
-        MemoryAdressingMode::Indirect
+        MemoryAdressingMode::Indirect,
+        false
     ),
     instruction!(
         "ADC",
         0x6d,
         3,
-        0,
+        4,
         InstructionType::ADC,
-        MemoryAdressingMode::Absolute
+        MemoryAdressingMode::Absolute,
+        false
     ),
     instruction!(
         "ROR",
         0x6e,
         3,
-        0,
+        6,
         InstructionType::ROR,
-        MemoryAdressingMode::Absolute
+        MemoryAdressingMode::Absolute,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -895,23 +1006,26 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "BVS",
         0x70,
         2,
-        0,
+        2,
         InstructionType::BVS,
-        MemoryAdressingMode::Relative
+        MemoryAdressingMode::Relative,
+        true
     ),
     instruction!(
         "ADC",
         0x71,
         2,
-        0,
+        5,
         InstructionType::ADC,
-        MemoryAdressingMode::IndirectY
+        MemoryAdressingMode::IndirectY,
+        true
     ),
     instruction!(
         "NotImplemented",
@@ -919,7 +1033,8 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -927,7 +1042,8 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -935,23 +1051,26 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "ADC",
         0x75,
         2,
-        0,
+        4,
         InstructionType::ADC,
-        MemoryAdressingMode::ZeroPageX
+        MemoryAdressingMode::ZeroPageX,
+        false
     ),
     instruction!(
         "ROR",
         0x76,
         2,
-        0,
+        6,
         InstructionType::ROR,
-        MemoryAdressingMode::ZeroPageX
+        MemoryAdressingMode::ZeroPageX,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -959,23 +1078,26 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "SEI",
         0x78,
         1,
-        0,
+        2,
         InstructionType::SEI,
-        MemoryAdressingMode::Implied
+        MemoryAdressingMode::Implied,
+        false
     ),
     instruction!(
         "ADC",
         0x79,
         3,
-        0,
+        4,
         InstructionType::ADC,
-        MemoryAdressingMode::AbsoluteY
+        MemoryAdressingMode::AbsoluteY,
+        true
     ),
     instruction!(
         "NotImplemented",
@@ -983,7 +1105,8 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -991,7 +1114,8 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -999,23 +1123,26 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "ADC",
         0x7d,
         3,
-        0,
+        4,
         InstructionType::ADC,
-        MemoryAdressingMode::AbsoluteX
+        MemoryAdressingMode::AbsoluteX,
+        true
     ),
     instruction!(
         "ROR",
         0x7e,
         3,
-        0,
+        7,
         InstructionType::ROR,
-        MemoryAdressingMode::AbsoluteX
+        MemoryAdressingMode::AbsoluteX,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -1023,7 +1150,8 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -1031,15 +1159,17 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "STA",
         0x81,
         2,
-        0,
+        6,
         InstructionType::STA,
-        MemoryAdressingMode::IndirectX
+        MemoryAdressingMode::IndirectX,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -1047,7 +1177,8 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -1055,31 +1186,35 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "STY",
         0x84,
         2,
-        0,
+        3,
         InstructionType::STY,
-        MemoryAdressingMode::ZeroPage
+        MemoryAdressingMode::ZeroPage,
+        false
     ),
     instruction!(
         "STA",
         0x85,
         2,
-        0,
+        3,
         InstructionType::STA,
-        MemoryAdressingMode::ZeroPage
+        MemoryAdressingMode::ZeroPage,
+        false
     ),
     instruction!(
         "STX",
         0x86,
         2,
-        0,
+        3,
         InstructionType::STX,
-        MemoryAdressingMode::ZeroPage
+        MemoryAdressingMode::ZeroPage,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -1087,15 +1222,17 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "DEY",
         0x88,
         1,
-        0,
+        2,
         InstructionType::DEY,
-        MemoryAdressingMode::Implied
+        MemoryAdressingMode::Implied,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -1103,15 +1240,17 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "TXA",
         0x8a,
         1,
-        0,
+        2,
         InstructionType::TXA,
-        MemoryAdressingMode::Implied
+        MemoryAdressingMode::Implied,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -1119,31 +1258,35 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "STY",
         0x8c,
         3,
-        0,
+        4,
         InstructionType::STY,
-        MemoryAdressingMode::Absolute
+        MemoryAdressingMode::Absolute,
+        false
     ),
     instruction!(
         "STA",
         0x8d,
         3,
-        0,
+        4,
         InstructionType::STA,
-        MemoryAdressingMode::Absolute
+        MemoryAdressingMode::Absolute,
+        false
     ),
     instruction!(
         "STX",
         0x8e,
         3,
-        0,
+        4,
         InstructionType::STX,
-        MemoryAdressingMode::Absolute
+        MemoryAdressingMode::Absolute,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -1151,23 +1294,26 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "BCC",
         0x90,
         2,
-        0,
+        2,
         InstructionType::BCC,
-        MemoryAdressingMode::Relative
+        MemoryAdressingMode::Relative,
+        true
     ),
     instruction!(
         "STA",
         0x91,
         2,
-        0,
+        6,
         InstructionType::STA,
-        MemoryAdressingMode::IndirectY
+        MemoryAdressingMode::IndirectY,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -1175,7 +1321,8 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -1183,31 +1330,35 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "STY",
         0x94,
         2,
-        0,
+        4,
         InstructionType::STY,
-        MemoryAdressingMode::ZeroPageX
+        MemoryAdressingMode::ZeroPageX,
+        false
     ),
     instruction!(
         "STA",
         0x95,
         2,
-        0,
+        4,
         InstructionType::STA,
-        MemoryAdressingMode::ZeroPageX
+        MemoryAdressingMode::ZeroPageX,
+        false
     ),
     instruction!(
         "STX",
         0x96,
         2,
-        0,
+        4,
         InstructionType::STX,
-        MemoryAdressingMode::ZeroPageY
+        MemoryAdressingMode::ZeroPageY,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -1215,31 +1366,35 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "TYA",
         0x98,
         1,
-        0,
+        2,
         InstructionType::TYA,
-        MemoryAdressingMode::Implied
+        MemoryAdressingMode::Implied,
+        false
     ),
     instruction!(
         "STA",
         0x99,
         3,
-        0,
+        5,
         InstructionType::STA,
-        MemoryAdressingMode::AbsoluteY
+        MemoryAdressingMode::AbsoluteY,
+        false
     ),
     instruction!(
         "TXS",
         0x9a,
         1,
-        0,
+        2,
         InstructionType::TXS,
-        MemoryAdressingMode::Implied
+        MemoryAdressingMode::Implied,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -1247,7 +1402,8 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -1255,15 +1411,17 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "STA",
         0x9d,
         3,
-        0,
+        5,
         InstructionType::STA,
-        MemoryAdressingMode::AbsoluteX
+        MemoryAdressingMode::AbsoluteX,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -1271,7 +1429,8 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -1279,31 +1438,35 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "LDY",
         0xa0,
         2,
-        0,
+        2,
         InstructionType::LDY,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "LDA",
         0xa1,
         2,
-        0,
+        6,
         InstructionType::LDA,
-        MemoryAdressingMode::IndirectX
+        MemoryAdressingMode::IndirectX,
+        false
     ),
     instruction!(
         "LDX",
         0xa2,
         2,
-        0,
+        2,
         InstructionType::LDX,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -1311,31 +1474,35 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "LDY",
         0xa4,
         2,
-        0,
+        3,
         InstructionType::LDY,
-        MemoryAdressingMode::ZeroPage
+        MemoryAdressingMode::ZeroPage,
+        false
     ),
     instruction!(
         "LDA",
         0xa5,
         2,
-        0,
+        3,
         InstructionType::LDA,
-        MemoryAdressingMode::ZeroPage
+        MemoryAdressingMode::ZeroPage,
+        false
     ),
     instruction!(
         "LDX",
         0xa6,
         2,
-        0,
+        3,
         InstructionType::LDX,
-        MemoryAdressingMode::ZeroPage
+        MemoryAdressingMode::ZeroPage,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -1343,31 +1510,35 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "TAY",
         0xa8,
         1,
-        0,
+        2,
         InstructionType::TAY,
-        MemoryAdressingMode::Implied
+        MemoryAdressingMode::Implied,
+        false
     ),
     instruction!(
         "LDA",
         0xa9,
         2,
-        0,
+        2,
         InstructionType::LDA,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "TAX",
         0xaa,
         1,
-        0,
+        2,
         InstructionType::TAX,
-        MemoryAdressingMode::Implied
+        MemoryAdressingMode::Implied,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -1375,31 +1546,35 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "LDY",
         0xac,
         3,
-        0,
+        4,
         InstructionType::LDY,
-        MemoryAdressingMode::Absolute
+        MemoryAdressingMode::Absolute,
+        false
     ),
     instruction!(
         "LDA",
         0xad,
         3,
-        0,
+        4,
         InstructionType::LDA,
-        MemoryAdressingMode::Absolute
+        MemoryAdressingMode::Absolute,
+        false
     ),
     instruction!(
         "LDX",
         0xae,
         3,
-        0,
+        4,
         InstructionType::LDX,
-        MemoryAdressingMode::Absolute
+        MemoryAdressingMode::Absolute,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -1407,23 +1582,26 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "BCS",
         0xb0,
         2,
-        0,
+        2,
         InstructionType::BCS,
-        MemoryAdressingMode::Relative
+        MemoryAdressingMode::Relative,
+        true
     ),
     instruction!(
         "LDA",
         0xb1,
         2,
-        0,
+        5,
         InstructionType::LDA,
-        MemoryAdressingMode::IndirectY
+        MemoryAdressingMode::IndirectY,
+        true
     ),
     instruction!(
         "NotImplemented",
@@ -1431,7 +1609,8 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -1439,31 +1618,35 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "LDY",
         0xb4,
         2,
-        0,
+        4,
         InstructionType::LDY,
-        MemoryAdressingMode::ZeroPageX
+        MemoryAdressingMode::ZeroPageX,
+        false
     ),
     instruction!(
         "LDA",
         0xb5,
         2,
-        0,
+        4,
         InstructionType::LDA,
-        MemoryAdressingMode::ZeroPageX
+        MemoryAdressingMode::ZeroPageX,
+        false
     ),
     instruction!(
         "LDX",
         0xb6,
         2,
-        0,
+        4,
         InstructionType::LDX,
-        MemoryAdressingMode::ZeroPageY
+        MemoryAdressingMode::ZeroPageY,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -1471,31 +1654,35 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "CLV",
         0xb8,
         1,
-        0,
+        2,
         InstructionType::CLV,
-        MemoryAdressingMode::Implied
+        MemoryAdressingMode::Implied,
+        false
     ),
     instruction!(
         "LDA",
         0xb9,
         3,
-        0,
+        4,
         InstructionType::LDA,
-        MemoryAdressingMode::AbsoluteY
+        MemoryAdressingMode::AbsoluteY,
+        true
     ),
     instruction!(
         "TSX",
         0xba,
         1,
-        0,
+        2,
         InstructionType::TSX,
-        MemoryAdressingMode::Implied
+        MemoryAdressingMode::Implied,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -1503,31 +1690,35 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "LDY",
         0xbc,
         3,
-        0,
+        4,
         InstructionType::LDY,
-        MemoryAdressingMode::AbsoluteX
+        MemoryAdressingMode::AbsoluteX,
+        true
     ),
     instruction!(
         "LDA",
         0xbd,
         3,
-        0,
+        4,
         InstructionType::LDA,
-        MemoryAdressingMode::AbsoluteX
+        MemoryAdressingMode::AbsoluteX,
+        true
     ),
     instruction!(
         "LDX",
         0xbe,
         3,
-        0,
+        4,
         InstructionType::LDX,
-        MemoryAdressingMode::AbsoluteY
+        MemoryAdressingMode::AbsoluteY,
+        true
     ),
     instruction!(
         "NotImplemented",
@@ -1535,23 +1726,26 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "CPY",
         0xc0,
         2,
-        0,
+        2,
         InstructionType::CPY,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "CMP",
         0xc1,
         2,
-        0,
+        6,
         InstructionType::CMP,
-        MemoryAdressingMode::IndirectX
+        MemoryAdressingMode::IndirectX,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -1559,7 +1753,8 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -1567,31 +1762,35 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "CPY",
         0xc4,
         2,
-        0,
+        3,
         InstructionType::CPY,
-        MemoryAdressingMode::ZeroPage
+        MemoryAdressingMode::ZeroPage,
+        false
     ),
     instruction!(
         "CMP",
         0xc5,
         2,
-        0,
+        3,
         InstructionType::CMP,
-        MemoryAdressingMode::ZeroPage
+        MemoryAdressingMode::ZeroPage,
+        false
     ),
     instruction!(
         "DEC",
         0xc6,
         2,
-        0,
+        5,
         InstructionType::DEC,
-        MemoryAdressingMode::ZeroPage
+        MemoryAdressingMode::ZeroPage,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -1599,31 +1798,35 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "INY",
         0xc8,
         1,
-        0,
+        2,
         InstructionType::INY,
-        MemoryAdressingMode::Implied
+        MemoryAdressingMode::Implied,
+        false
     ),
     instruction!(
         "CMP",
         0xc9,
         2,
-        0,
+        2,
         InstructionType::CMP,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "DEX",
         0xca,
         1,
-        0,
+        2,
         InstructionType::DEX,
-        MemoryAdressingMode::Implied
+        MemoryAdressingMode::Implied,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -1631,31 +1834,35 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "CPY",
         0xcc,
         3,
-        0,
+        4,
         InstructionType::CPY,
-        MemoryAdressingMode::Absolute
+        MemoryAdressingMode::Absolute,
+        false
     ),
     instruction!(
         "CMP",
         0xcd,
         3,
-        0,
+        4,
         InstructionType::CMP,
-        MemoryAdressingMode::Absolute
+        MemoryAdressingMode::Absolute,
+        false
     ),
     instruction!(
         "DEC",
         0xce,
         3,
-        0,
+        6,
         InstructionType::DEC,
-        MemoryAdressingMode::Absolute
+        MemoryAdressingMode::Absolute,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -1663,23 +1870,26 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "BNE",
         0xd0,
         2,
-        0,
+        2,
         InstructionType::BNE,
-        MemoryAdressingMode::Relative
+        MemoryAdressingMode::Relative,
+        true
     ),
     instruction!(
         "CMP",
         0xd1,
         2,
-        0,
+        5,
         InstructionType::CMP,
-        MemoryAdressingMode::IndirectY
+        MemoryAdressingMode::IndirectY,
+        true
     ),
     instruction!(
         "NotImplemented",
@@ -1687,7 +1897,8 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -1695,7 +1906,8 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -1703,23 +1915,26 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "CMP",
         0xd5,
         2,
-        0,
+        4,
         InstructionType::CMP,
-        MemoryAdressingMode::ZeroPageX
+        MemoryAdressingMode::ZeroPageX,
+        false
     ),
     instruction!(
         "DEC",
         0xd6,
         2,
-        0,
+        6,
         InstructionType::DEC,
-        MemoryAdressingMode::ZeroPageX
+        MemoryAdressingMode::ZeroPageX,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -1727,23 +1942,26 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "CLD",
         0xd8,
         1,
-        0,
+        2,
         InstructionType::CLD,
-        MemoryAdressingMode::Implied
+        MemoryAdressingMode::Implied,
+        false
     ),
     instruction!(
         "CMP",
         0xd9,
         3,
-        0,
+        4,
         InstructionType::CMP,
-        MemoryAdressingMode::AbsoluteY
+        MemoryAdressingMode::AbsoluteY,
+        true
     ),
     instruction!(
         "NotImplemented",
@@ -1751,7 +1969,8 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -1759,7 +1978,8 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -1767,23 +1987,26 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "CMP",
         0xdd,
         3,
-        0,
+        4,
         InstructionType::CMP,
-        MemoryAdressingMode::AbsoluteX
+        MemoryAdressingMode::AbsoluteX,
+        true
     ),
     instruction!(
         "DEC",
         0xde,
         3,
-        0,
+        7,
         InstructionType::DEC,
-        MemoryAdressingMode::AbsoluteX
+        MemoryAdressingMode::AbsoluteX,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -1791,23 +2014,26 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "CPX",
         0xe0,
         2,
-        0,
+        2,
         InstructionType::CPX,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "SBC",
         0xe1,
         2,
-        0,
+        6,
         InstructionType::SBC,
-        MemoryAdressingMode::IndirectX
+        MemoryAdressingMode::IndirectX,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -1815,7 +2041,8 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -1823,31 +2050,35 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "CPX",
         0xe4,
         2,
-        0,
+        3,
         InstructionType::CPX,
-        MemoryAdressingMode::ZeroPage
+        MemoryAdressingMode::ZeroPage,
+        false
     ),
     instruction!(
         "SBC",
         0xe5,
         2,
-        0,
+        3,
         InstructionType::SBC,
-        MemoryAdressingMode::ZeroPage
+        MemoryAdressingMode::ZeroPage,
+        false
     ),
     instruction!(
         "INC",
         0xe6,
         2,
-        0,
+        5,
         InstructionType::INC,
-        MemoryAdressingMode::ZeroPage
+        MemoryAdressingMode::ZeroPage,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -1855,31 +2086,35 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "INX",
         0xe8,
         1,
-        0,
+        2,
         InstructionType::INX,
-        MemoryAdressingMode::Implied
+        MemoryAdressingMode::Implied,
+        false
     ),
     instruction!(
         "SBC",
         0xe9,
         2,
-        0,
+        2,
         InstructionType::SBC,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "NOP",
         0xea,
         1,
-        0,
+        2,
         InstructionType::NOP,
-        MemoryAdressingMode::Implied
+        MemoryAdressingMode::Implied,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -1887,31 +2122,35 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "CPX",
         0xec,
         3,
-        0,
+        4,
         InstructionType::CPX,
-        MemoryAdressingMode::Absolute
+        MemoryAdressingMode::Absolute,
+        false
     ),
     instruction!(
         "SBC",
         0xed,
         3,
-        0,
+        4,
         InstructionType::SBC,
-        MemoryAdressingMode::Absolute
+        MemoryAdressingMode::Absolute,
+        false
     ),
     instruction!(
         "INC",
         0xee,
         3,
-        0,
+        6,
         InstructionType::INC,
-        MemoryAdressingMode::Absolute
+        MemoryAdressingMode::Absolute,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -1919,23 +2158,26 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "BEQ",
         0xf0,
         2,
-        0,
+        2,
         InstructionType::BEQ,
-        MemoryAdressingMode::Relative
+        MemoryAdressingMode::Relative,
+        true
     ),
     instruction!(
         "SBC",
         0xf1,
         2,
-        0,
+        5,
         InstructionType::SBC,
-        MemoryAdressingMode::IndirectY
+        MemoryAdressingMode::IndirectY,
+        true
     ),
     instruction!(
         "NotImplemented",
@@ -1943,7 +2185,8 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -1951,7 +2194,8 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -1959,23 +2203,26 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "SBC",
         0xf5,
         2,
-        0,
+        4,
         InstructionType::SBC,
-        MemoryAdressingMode::ZeroPageX
+        MemoryAdressingMode::ZeroPageX,
+        false
     ),
     instruction!(
         "INC",
         0xf6,
         2,
-        0,
+        6,
         InstructionType::INC,
-        MemoryAdressingMode::ZeroPageX
+        MemoryAdressingMode::ZeroPageX,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -1983,23 +2230,26 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "SED",
         0xf8,
         1,
-        0,
+        2,
         InstructionType::SED,
-        MemoryAdressingMode::Implied
+        MemoryAdressingMode::Implied,
+        false
     ),
     instruction!(
         "SBC",
         0xf9,
         3,
-        0,
+        4,
         InstructionType::SBC,
-        MemoryAdressingMode::AbsoluteY
+        MemoryAdressingMode::AbsoluteY,
+        true
     ),
     instruction!(
         "NotImplemented",
@@ -2007,7 +2257,8 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -2015,7 +2266,8 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "NotImplemented",
@@ -2023,22 +2275,25 @@ pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
         0,
         0,
         InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate
+        MemoryAdressingMode::Immediate,
+        false
     ),
     instruction!(
         "SBC",
         0xfd,
         3,
-        0,
+        4,
         InstructionType::SBC,
-        MemoryAdressingMode::AbsoluteX
+        MemoryAdressingMode::AbsoluteX,
+        true
     ),
     instruction!(
         "INC",
         0xfe,
         3,
-        0,
+        7,
         InstructionType::INC,
-        MemoryAdressingMode::AbsoluteX
+        MemoryAdressingMode::AbsoluteX,
+        false
     ),
 ];

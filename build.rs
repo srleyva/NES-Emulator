@@ -23,6 +23,8 @@ fn main() -> Result<()> {
         let op_code = u8::from_str_radix(&op_code, 16).unwrap();
 
         let bytes = item["bytes"].as_str().unwrap().to_owned();
+        let cycles = item["cycles"].as_i64().unwrap();
+        let plus_cycle = item["+1"].as_bool().unwrap();
 
         let instruction = format!("InstructionType::{}", mnemonic.to_uppercase());
 
@@ -30,8 +32,8 @@ fn main() -> Result<()> {
         let memory_addressing = format!("MemoryAdressingMode::{}", memory_addressing);
 
         let instruction = format!(
-            "    instruction!(\"{}\", {:#x}, {}, {}, {}, {}),",
-            mnemonic, op_code, bytes, "0", instruction, memory_addressing
+            "    instruction!(\"{}\", {:#x}, {}, {}, {}, {}, {}),",
+            mnemonic, op_code, bytes, cycles, instruction, memory_addressing, plus_cycle
         );
         instructions.insert(op_code, instruction);
     }
@@ -39,7 +41,7 @@ fn main() -> Result<()> {
     for i in 0..255 {
         let instruction = match instructions.get(&i) {
             Some(instruction) => instruction.to_owned(),
-            None => format!("    instruction!(\"NotImplemented\", {:#x}, 0, 0, InstructionType::NotImplemented, MemoryAdressingMode::Immediate),", i),
+            None => format!("    instruction!(\"NotImplemented\", {:#x}, 0, 0, InstructionType::NotImplemented, MemoryAdressingMode::Immediate, false),", i),
         };
         scope.raw(&instruction);
     }

@@ -1,6 +1,6 @@
 #[macro_export]
 macro_rules! instruction {
-    ($mnemonic:expr,$op_code:expr,$bytes:expr,$cycle:expr,$instruction_type:expr,$memory_addressing:expr) => {
+    ($mnemonic:expr,$op_code:expr,$bytes:expr,$cycle:expr,$instruction_type:expr,$memory_addressing:expr,$plus_cycle:expr) => {
         Instruction {
             #[cfg(debug_assertions)]
             mnemonic: $mnemonic,
@@ -10,6 +10,7 @@ macro_rules! instruction {
             cycle: $cycle,
             instruction_type: $instruction_type,
             memory_addressing_mode: $memory_addressing,
+            plus_cycle: $plus_cycle,
         }
     };
 }
@@ -104,6 +105,7 @@ pub struct Instruction {
     pub cycle: u8,
     pub instruction_type: InstructionType,
     pub memory_addressing_mode: MemoryAdressingMode,
+    pub plus_cycle: bool,
 }
 
 impl std::fmt::Display for Instruction {
