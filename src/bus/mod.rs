@@ -1,4 +1,4 @@
-use super::ppu::PPU;
+use super::ppu::{PPUValue, PPU};
 use super::rom::Rom;
 
 pub struct MemoryBus {
@@ -28,7 +28,7 @@ impl MemoryBus {
                 let mirror_down_addr = address & 0b0000_0111_1111_1111;
                 self.memory[mirror_down_addr as usize]
             }
-            0x2000..=PPU_REGISTERS_MIRRORS_END | 0x4014 => self.ppu.read(address),
+            0x2000..=PPU_REGISTERS_MIRRORS_END | 0x4014 => self.ppu.read(address).into(),
             0x8000..=0xFFFF => self.read_from_rom(address),
             _ => {
                 println!("Ignoring mem access at {}", address);
@@ -43,7 +43,9 @@ impl MemoryBus {
                 let mirror_down_addr = address & 0b11111111111;
                 self.memory[mirror_down_addr as usize] = data;
             }
-            0x2000..=PPU_REGISTERS_MIRRORS_END | 0x4014 => self.ppu.write(address, data),
+            0x2000..=PPU_REGISTERS_MIRRORS_END | 0x4014 => {
+                self.ppu.write(address, PPUValue::Byte(data))
+            }
             0x8000..=0xFFFF => panic!("Attempt to write to Cartridge ROM space: {:x}", address),
 
             _ => {

@@ -39,6 +39,10 @@ impl Address {
         }
         self.pointer = !self.pointer;
     }
+
+    pub fn reset_latch(&mut self) {
+        self.pointer = false
+    }
 }
 
 #[cfg(test)]
