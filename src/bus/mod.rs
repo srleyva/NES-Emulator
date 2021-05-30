@@ -1,8 +1,10 @@
+use super::ppu::PPU;
 use super::rom::Rom;
 
 pub struct MemoryBus {
     memory: [u8; 2048],
-    rom: Rom,
+    prg_rom: Vec<u8>,
+    ppu: PPU,
 }
 
 const RAM: u16 = 0x0000;
@@ -12,49 +14,45 @@ const PPU_REGISTERS_MIRRORS_END: u16 = 0x3FFF;
 
 impl MemoryBus {
     pub fn new(rom: Rom) -> Self {
+        let ppu = PPU::new(rom.chr_rom, rom.screen_mirroring);
         Self {
             memory: [0; 2048],
-            rom,
+            prg_rom: rom.prg_rom,
+            ppu,
         }
     }
 
-    pub fn read_byte(&self, address: u16) -> u8 {
+    pub fn read_byte(&mut self, address: u16) -> u8 {
         match address {
             RAM..=RAM_MIRRORS_END => {
                 let mirror_down_addr = address & 0b0000_0111_1111_1111;
                 self.memory[mirror_down_addr as usize]
             }
-            PPU_REGISTERS..=PPU_REGISTERS_MIRRORS_END => {
-                let _mirror_down_addr = address & 0b0010_0000_0000_0111;
-                todo!("PPU is not supported yet")
-            }
+            0x2000..=PPU_REGISTERS_MIRRORS_END | 0x4014 => self.ppu.read(address),
             0x8000..=0xFFFF => self.read_from_rom(address),
             _ => {
                 println!("Ignoring mem access at {}", address);
-                self.memory[address as usize]
+                0
             }
         }
     }
 
-    pub fn write_byte(&mut self, address: u16, byte: u8) {
+    pub fn write_byte(&mut self, address: u16, data: u8) {
         match address {
             RAM..=RAM_MIRRORS_END => {
-                let mirror_down_addr = address & 0b0000_0111_1111_1111;
-                self.memory[mirror_down_addr as usize] = byte;
+                let mirror_down_addr = address & 0b11111111111;
+                self.memory[mirror_down_addr as usize] = data;
             }
-            PPU_REGISTERS..=PPU_REGISTERS_MIRRORS_END => {
-                let _mirror_down_addr = address & 0b0010_0000_0000_0111;
-                todo!("PPU is not supported yet")
-            }
-            0x8000..=0xFFFF => panic!("Attempted to write to ROM Address space"),
+            0x2000..=PPU_REGISTERS_MIRRORS_END | 0x4014 => self.ppu.write(address, data),
+            0x8000..=0xFFFF => panic!("Attempt to write to Cartridge ROM space: {:x}", address),
+
             _ => {
-                println!("Ignoring mem access at {}", address);
-                self.memory[address as usize] = byte
+                println!("Ignoring mem write-access at {}", address);
             }
         }
     }
 
-    pub fn read_word(&self, address: u16) -> u16 {
+    pub fn read_word(&mut self, address: u16) -> u16 {
         let least_sig_bits = self.read_byte(address) as u16;
         let most_sig_bits = self.read_byte(address + 1) as u16;
         (most_sig_bits << 8) | least_sig_bits
@@ -69,11 +67,11 @@ impl MemoryBus {
 
     pub fn read_from_rom(&self, mut address: u16) -> u8 {
         address -= 0x8000;
-        if self.rom.prg_rom.len() == 0x4000 && address >= 0x4000 {
+        if self.prg_rom.len() == 0x4000 && address >= 0x4000 {
             //mirror if needed
             address %= 0x4000;
         }
-        self.rom.prg_rom[address as usize]
+        self.prg_rom[address as usize]
     }
 }
 
