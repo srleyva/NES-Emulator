@@ -12,3 +12,4 @@ Just messing around with building an NES Emulator.
 cargo run --release ./assets/snake.nes
 ```
 
+Based off EBook: https://bugzmanov.github.io/nes_ebook
