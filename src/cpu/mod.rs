@@ -6,6 +6,7 @@ use instructions::{
     get_instruction_from_opcode, Instruction, InstructionType, MemoryAdressingMode,
 };
 use processor_status::ProcesssorStatus;
+use std::sync::mpsc;
 
 const STACK: u16 = 0x0100;
 
@@ -17,6 +18,8 @@ pub struct CPU {
     y: u8,
     processor_status: ProcesssorStatus,
     pub(crate) bus: MemoryBus,
+    page_cross: bool,
+    nmi: mpsc::Receiver<bool>,
 }
 
 impl std::fmt::Display for CPU {
@@ -26,7 +29,7 @@ impl std::fmt::Display for CPU {
 }
 
 impl CPU {
-    pub fn new(rom: MemoryBus) -> Self {
+    pub fn new(rom: MemoryBus, nmi_recv: mpsc::Receiver<bool>) -> Self {
         let mut cpu = Self {
             program_counter: 0x8000,
             stack_pointer: 0xfd,
@@ -35,6 +38,8 @@ impl CPU {
             y: 0,
             processor_status: ProcesssorStatus::default(),
             bus: rom,
+            page_cross: false,
+            nmi: nmi_recv,
         };
 
         cpu.reset_cpu();
@@ -46,6 +51,10 @@ impl CPU {
         F: FnMut(&mut CPU),
     {
         loop {
+            if let Ok(_nmi) = self.nmi.try_recv() {
+                self.interrupt_nmi();
+            }
+
             let instruction = get_instruction_from_opcode(self.read_next_byte());
             if cfg!(debug_assertions) {
                 print!("{}", instruction);
@@ -116,7 +125,15 @@ impl CPU {
                 println!();
                 println!("CPU: {}", self);
             }
+
             callback(self);
+            let cycles = if instruction.plus_cycle && self.page_cross {
+                instruction.cycle + 1
+            } else {
+                instruction.cycle
+            };
+            self.page_cross = false;
+            self.bus.tick(cycles);
         }
     }
 
@@ -495,11 +512,17 @@ impl CPU {
     }
 
     fn absolute_x_address(&mut self) -> u16 {
-        self.absolute_address().wrapping_add(self.x as u16)
+        let base = self.absolute_address();
+        let addr = base.wrapping_add(self.x as u16);
+        self.cross_page_boundary(base, addr);
+        addr
     }
 
     fn absolute_y_address(&mut self) -> u16 {
-        self.read_next_word().wrapping_add(self.y as u16)
+        let base = self.absolute_address();
+        let addr = base.wrapping_add(self.y as u16);
+        self.cross_page_boundary(base, addr);
+        addr
     }
 
     fn zero_page_address(&mut self) -> u16 {
@@ -527,12 +550,18 @@ impl CPU {
         let lo = self.bus.read_byte(base as u16);
         let hi = self.bus.read_byte((base as u8).wrapping_add(1) as u16);
         let deref_base = (hi as u16) << 8 | (lo as u16);
-        deref_base.wrapping_add(self.y as u16)
+        let deref = deref_base.wrapping_add(self.y as u16);
+        self.cross_page_boundary(deref_base, deref);
+        deref
     }
 
     /*
     Helpers
     */
+
+    fn cross_page_boundary(&mut self, addr_1: u16, addr_2: u16) {
+        self.page_cross = addr_1 & 0b1111_1111_0000_0000 != addr_2 & 0xff00;
+    }
 
     fn compare(&mut self, register: u8, value: u8) {
         if register >= value {
@@ -545,6 +574,7 @@ impl CPU {
         let offset = self.read_next_byte() as i8;
         if jump {
             self.program_counter = self.program_counter.wrapping_add(offset as u16);
+            self.page_cross = true
         }
     }
 
@@ -598,6 +628,16 @@ impl CPU {
         self.program_counter = self.bus.read_word(0xFFFC); // Part of the NES Spec
     }
 
+    fn interrupt_nmi(&mut self) {
+        self.push_word(self.program_counter);
+        self.processor_status.set_break(true);
+        self.processor_status.set_break2(true);
+        self.push(self.processor_status.inner);
+        self.processor_status.set_interrupt(true);
+        self.bus.tick(2);
+        self.program_counter = self.bus.read_word(0xfffA);
+    }
+
     fn read_next_byte(&mut self) -> u8 {
         let byte = self.bus.read_byte(self.program_counter);
         self.program_counter += 1;
@@ -623,6 +663,7 @@ mod test {
     use super::*;
 
     fn fake_rom(game_code: Vec<u8>) -> MemoryBus {
+        let (nmi_send, nmi_recv) = mpsc::channel();
         let mut code = [0 as u8; 0x7FFF].to_vec();
         code[0x00..game_code.len()].copy_from_slice(&game_code);
         let rom = Rom {
@@ -631,7 +672,7 @@ mod test {
             mapper: 0,
             screen_mirroring: Mirroring::Horizontal,
         };
-        return MemoryBus::new(rom);
+        return MemoryBus::new(rom, nmi_send);
     }
 
     pub fn start(cpu: &mut CPU) {
@@ -665,13 +706,15 @@ mod test {
             0xa2, 0x00, 0xa9, 0x01, 0x81, 0x10, 0x60, 0xa2, 0x00, 0xea, 0xea, 0xca, 0xd0, 0xfb,
             0x60,
         ];
-        let mut cpu = CPU::new(fake_rom(game_code));
+        let (nmi_send, nmi_recv) = mpsc::channel();
+        let mut cpu = CPU::new(fake_rom(game_code), nmi_recv);
         start(&mut cpu);
     }
 
     #[test]
     fn test_adc() {
-        let mut cpu = CPU::new(fake_rom(vec![0x69, 0x10, 0x00]));
+        let (nmi_send, nmi_recv) = mpsc::channel();
+        let mut cpu = CPU::new(fake_rom(vec![0x69, 0x10, 0x00]), nmi_recv);
         // Set the ROM start to default
         cpu.program_counter = 0x8000;
         cpu.a = 0x00;
@@ -684,7 +727,8 @@ mod test {
 
     #[test]
     fn test_adc_carry() {
-        let mut cpu = CPU::new(fake_rom(vec![0x69, 0x10, 0x00]));
+        let (nmi_send, nmi_recv) = mpsc::channel();
+        let mut cpu = CPU::new(fake_rom(vec![0x69, 0x10, 0x00]), nmi_recv);
         // Set the ROM start to default
         cpu.program_counter = 0x8000;
         cpu.a = 0xff;
@@ -697,7 +741,8 @@ mod test {
 
     #[test]
     fn test_asl() {
-        let mut cpu = CPU::new(fake_rom(vec![0x0a, 0x00]));
+        let (nmi_send, nmi_recv) = mpsc::channel();
+        let mut cpu = CPU::new(fake_rom(vec![0x0a, 0x00]), nmi_recv);
 
         cpu.program_counter = 0x8000;
         cpu.a = 0b1111_1111;
@@ -709,7 +754,8 @@ mod test {
 
     #[test]
     fn test_asl_no_carry() {
-        let mut cpu = CPU::new(fake_rom(vec![0x0a, 0x00]));
+        let (nmi_send, nmi_recv) = mpsc::channel();
+        let mut cpu = CPU::new(fake_rom(vec![0x0a, 0x00]), nmi_recv);
 
         cpu.program_counter = 0x8000;
         cpu.a = 0b0111_1111;
@@ -721,7 +767,11 @@ mod test {
 
     #[test]
     fn test_bcc_carry() {
-        let mut cpu = CPU::new(fake_rom(vec![0x90, 0x02, 0x69, 0x01, 0x69, 0x01, 0x00]));
+        let (nmi_send, nmi_recv) = mpsc::channel();
+        let mut cpu = CPU::new(
+            fake_rom(vec![0x90, 0x02, 0x69, 0x01, 0x69, 0x01, 0x00]),
+            nmi_recv,
+        );
 
         cpu.program_counter = 0x8000;
         cpu.processor_status.set_carry(true);
@@ -731,7 +781,11 @@ mod test {
 
     #[test]
     fn test_bcc_no_carry() {
-        let mut cpu = CPU::new(fake_rom(vec![0x90, 0x02, 0x69, 0x01, 0x69, 0x01, 0x00]));
+        let (nmi_send, nmi_recv) = mpsc::channel();
+        let mut cpu = CPU::new(
+            fake_rom(vec![0x90, 0x02, 0x69, 0x01, 0x69, 0x01, 0x00]),
+            nmi_recv,
+        );
 
         cpu.program_counter = 0x8000;
         cpu.processor_status.set_carry(false);
@@ -740,7 +794,11 @@ mod test {
     }
     #[test]
     fn test_bcs_carry() {
-        let mut cpu = CPU::new(fake_rom(vec![0xb0, 0x02, 0x69, 0x01, 0x69, 0x01, 0x00]));
+        let (nmi_send, nmi_recv) = mpsc::channel();
+        let mut cpu = CPU::new(
+            fake_rom(vec![0xb0, 0x02, 0x69, 0x01, 0x69, 0x01, 0x00]),
+            nmi_recv,
+        );
 
         cpu.program_counter = 0x8000;
         cpu.processor_status.set_carry(true);
@@ -750,7 +808,11 @@ mod test {
 
     #[test]
     fn test_bcs_no_carry() {
-        let mut cpu = CPU::new(fake_rom(vec![0xb0, 0x02, 0x69, 0x01, 0x69, 0x01, 0x00]));
+        let (nmi_send, nmi_recv) = mpsc::channel();
+        let mut cpu = CPU::new(
+            fake_rom(vec![0xb0, 0x02, 0x69, 0x01, 0x69, 0x01, 0x00]),
+            nmi_recv,
+        );
 
         cpu.program_counter = 0x8000;
         cpu.processor_status.set_carry(false);
@@ -760,7 +822,8 @@ mod test {
 
     #[test]
     fn test_bit_zero() {
-        let mut cpu = CPU::new(fake_rom(vec![0x2c, 0xaa, 0x00]));
+        let (nmi_send, nmi_recv) = mpsc::channel();
+        let mut cpu = CPU::new(fake_rom(vec![0x2c, 0xaa, 0x00]), nmi_recv);
         cpu.program_counter = 0x8000;
         cpu.a = 0b0111_1111;
         cpu.bus.write_byte(0xaa, 0b0000_0000);
@@ -773,7 +836,8 @@ mod test {
 
     #[test]
     fn test_bit_not_zero_overflow_carry() {
-        let mut cpu = CPU::new(fake_rom(vec![0x2c, 0xaa, 0x00]));
+        let (nmi_send, nmi_recv) = mpsc::channel();
+        let mut cpu = CPU::new(fake_rom(vec![0x2c, 0xaa, 0x00]), nmi_recv);
         cpu.program_counter = 0x8000;
         cpu.a = 0b0111_1111;
         cpu.bus.write_byte(0xaa, 0b1100_0001);
@@ -786,7 +850,8 @@ mod test {
 
     #[test]
     fn test_inx_overflow() {
-        let mut cpu = CPU::new(fake_rom(vec![0xe8, 0xe8, 0x00]));
+        let (nmi_send, nmi_recv) = mpsc::channel();
+        let mut cpu = CPU::new(fake_rom(vec![0xe8, 0xe8, 0x00]), nmi_recv);
         // Set the ROM start to default
         cpu.program_counter = 0x8000;
         cpu.x = 0xff;
@@ -797,7 +862,8 @@ mod test {
 
     #[test]
     fn test_read_next_byte() {
-        let mut cpu = CPU::new(fake_rom(vec![0x06, 0x12]));
+        let (nmi_send, nmi_recv) = mpsc::channel();
+        let mut cpu = CPU::new(fake_rom(vec![0x06, 0x12]), nmi_recv);
         // Set the ROM start to default
         cpu.program_counter = 0x8000;
 
@@ -812,7 +878,8 @@ mod test {
 
     #[test]
     fn test_ld() {
-        let mut cpu = CPU::new(fake_rom(vec![0xa9, 0xc5, 0x00]));
+        let (nmi_send, nmi_recv) = mpsc::channel();
+        let mut cpu = CPU::new(fake_rom(vec![0xa9, 0xc5, 0x00]), nmi_recv);
         // Set the ROM start to default
         cpu.program_counter = 0x8000;
 
@@ -825,7 +892,8 @@ mod test {
 
     #[test]
     fn test_ld_from_memory() {
-        let mut cpu = CPU::new(fake_rom(vec![0xa5, 0x10, 0x00]));
+        let (nmi_send, nmi_recv) = mpsc::channel();
+        let mut cpu = CPU::new(fake_rom(vec![0xa5, 0x10, 0x00]), nmi_recv);
         cpu.bus.write_byte(0x10, 0x55);
         cpu.program_counter = 0x8000;
 
@@ -836,7 +904,8 @@ mod test {
 
     #[test]
     fn test_ld_zero() {
-        let mut cpu = CPU::new(fake_rom(vec![0xa9, 0x00, 0x00]));
+        let (nmi_send, nmi_recv) = mpsc::channel();
+        let mut cpu = CPU::new(fake_rom(vec![0xa9, 0x00, 0x00]), nmi_recv);
         // Set the ROM start to default
         cpu.program_counter = 0x8000;
 
@@ -846,7 +915,8 @@ mod test {
 
     #[test]
     fn test_tax_zero() {
-        let mut cpu = CPU::new(fake_rom(vec![0xaa, 0x00]));
+        let (nmi_send, nmi_recv) = mpsc::channel();
+        let mut cpu = CPU::new(fake_rom(vec![0xaa, 0x00]), nmi_recv);
         // Set the ROM start to default
         cpu.program_counter = 0x8000;
 
@@ -858,7 +928,8 @@ mod test {
 
     #[test]
     fn test_tax() {
-        let mut cpu = CPU::new(fake_rom(vec![0xaa, 0x00]));
+        let (nmi_send, nmi_recv) = mpsc::channel();
+        let mut cpu = CPU::new(fake_rom(vec![0xaa, 0x00]), nmi_recv);
         // Set the ROM start to default
         cpu.program_counter = 0x8000;
 
@@ -870,7 +941,8 @@ mod test {
 
     #[test]
     fn test_sta() {
-        let mut cpu = CPU::new(fake_rom(vec![0x85, 0x04, 0x00]));
+        let (nmi_send, nmi_recv) = mpsc::channel();
+        let mut cpu = CPU::new(fake_rom(vec![0x85, 0x04, 0x00]), nmi_recv);
         // Set the ROM start to default
         cpu.program_counter = 0x8000;
 
@@ -883,7 +955,8 @@ mod test {
     #[test]
 
     fn test_stack() {
-        let mut cpu = CPU::new(fake_rom(vec![0x85, 0x04, 0x00]));
+        let (nmi_send, nmi_recv) = mpsc::channel();
+        let mut cpu = CPU::new(fake_rom(vec![0x85, 0x04, 0x00]), nmi_recv);
         cpu.push(0x10);
         assert_eq!(cpu.pop(), 0x10);
 

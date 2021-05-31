@@ -13,6 +13,7 @@ use cpu::CPU;
 use rand::Rng;
 use rom::Rom;
 use sdl2::{event::Event, keyboard::Keycode, pixels::Color, pixels::PixelFormatEnum, EventPump};
+use std::sync::mpsc;
 
 fn handle_user_input(cpu: &mut CPU, event_pump: &mut EventPump) {
     for event in event_pump.poll_iter() {
@@ -91,6 +92,7 @@ pub fn start_game_from_rom_path(path: String) {
 }
 
 pub fn start_game_from_rom(rom: Rom) {
+    let (nmi_send, nmi_recv) = mpsc::channel();
     // init sdl2
     let sdl_context = sdl2::init().unwrap();
     let video_subsystem = sdl_context.video().unwrap();
@@ -109,7 +111,7 @@ pub fn start_game_from_rom(rom: Rom) {
         .create_texture_target(PixelFormatEnum::RGB24, 32, 32)
         .unwrap();
 
-    let mut cpu = CPU::new(MemoryBus::new(rom));
+    let mut cpu = CPU::new(MemoryBus::new(rom, nmi_send), nmi_recv);
     cpu.reset_cpu();
 
     let mut screen_state = [0_u8; 32 * 3 * 32];

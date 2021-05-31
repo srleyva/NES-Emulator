@@ -1,10 +1,13 @@
 use super::ppu::{PPUValue, PPU};
 use super::rom::Rom;
+use std::sync::mpsc;
 
 pub struct MemoryBus {
     memory: [u8; 2048],
     prg_rom: Vec<u8>,
     ppu: PPU,
+
+    cycles: usize,
 }
 
 const RAM: u16 = 0x0000;
@@ -13,12 +16,13 @@ const PPU_REGISTERS: u16 = 0x2000;
 const PPU_REGISTERS_MIRRORS_END: u16 = 0x3FFF;
 
 impl MemoryBus {
-    pub fn new(rom: Rom) -> Self {
-        let ppu = PPU::new(rom.chr_rom, rom.screen_mirroring);
+    pub fn new(rom: Rom, nmi_sender: mpsc::Sender<bool>) -> Self {
+        let ppu = PPU::new(rom.chr_rom, rom.screen_mirroring, nmi_sender);
         Self {
             memory: [0; 2048],
             prg_rom: rom.prg_rom,
             ppu,
+            cycles: 0,
         }
     }
 
@@ -75,6 +79,11 @@ impl MemoryBus {
         }
         self.prg_rom[address as usize]
     }
+
+    pub fn tick(&mut self, cycles: u8) {
+        self.cycles += cycles as usize;
+        self.ppu.tick(cycles * 3);
+    }
 }
 
 #[cfg(test)]
@@ -84,12 +93,16 @@ mod test {
 
     #[test]
     fn test_write_read_word() {
-        let mut memory_bus = MemoryBus::new(Rom {
-            prg_rom: vec![],
-            chr_rom: vec![],
-            mapper: 0,
-            screen_mirroring: Mirroring::Horizontal,
-        });
+        let (sender, recv) = std::sync::mpsc::channel();
+        let mut memory_bus = MemoryBus::new(
+            Rom {
+                prg_rom: vec![],
+                chr_rom: vec![],
+                mapper: 0,
+                screen_mirroring: Mirroring::Horizontal,
+            },
+            sender,
+        );
         memory_bus.write_word(0x800, 0xFF);
         let word = memory_bus.read_word(0x800);
         assert_eq!(word, 0xFF)
@@ -97,12 +110,16 @@ mod test {
 
     #[test]
     fn test_write_read_byte() {
-        let mut memory_bus = MemoryBus::new(Rom {
-            prg_rom: vec![],
-            chr_rom: vec![],
-            mapper: 0,
-            screen_mirroring: Mirroring::Horizontal,
-        });
+        let (sender, recv) = std::sync::mpsc::channel();
+        let mut memory_bus = MemoryBus::new(
+            Rom {
+                prg_rom: vec![],
+                chr_rom: vec![],
+                mapper: 0,
+                screen_mirroring: Mirroring::Horizontal,
+            },
+            sender,
+        );
         memory_bus.write_byte(0x800, 0x01);
         let word = memory_bus.read_byte(0x800);
         assert_eq!(word, 0x01)

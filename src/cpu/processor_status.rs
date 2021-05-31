@@ -26,7 +26,7 @@ impl ProcesssorStatus {
     2 - Interrupt
     3 - Decimal
     4 - Break
-    5 - -
+    5 - Break2
     6 - Overflow
     7 - Negative
     */
@@ -87,6 +87,17 @@ impl ProcesssorStatus {
             self.inner |= 0b0001_0000
         } else {
             self.inner &= 0b1110_1111
+        }
+    }
+    pub fn get_break2(&self) -> bool {
+        self.inner & 0b0010_0000 == 0b0010_0000
+    }
+
+    pub fn set_break2(&mut self, brk: bool) {
+        if brk {
+            self.inner |= 0b0010_0000
+        } else {
+            self.inner &= 0b1101_1111
         }
     }
 

@@ -6,6 +6,7 @@ use crate::rom::Mirroring;
 use address::Address;
 use registers::{Control, Mask, Status};
 use scroll::Scroll;
+use std::sync::mpsc;
 
 #[derive(Debug)]
 pub enum PPUAddress {
@@ -89,10 +90,15 @@ pub(crate) struct PPU {
     mask: Mask,
     status: Status,
     scroll: Scroll,
+
+    scanline: u16,
+    cycles: usize,
+
+    nmi_sender: mpsc::Sender<bool>,
 }
 
 impl PPU {
-    pub fn new(chr_rom: Vec<u8>, mirroring: Mirroring) -> Self {
+    pub fn new(chr_rom: Vec<u8>, mirroring: Mirroring, nmi_sender: mpsc::Sender<bool>) -> Self {
         Self {
             chr_rom,
             vram: [0; 2048],
@@ -106,6 +112,9 @@ impl PPU {
             mask: Mask::default(),
             scroll: Scroll::default(),
             buffer: 0,
+            scanline: 0,
+            cycles: 0,
+            nmi_sender,
         }
     }
 
@@ -146,7 +155,16 @@ impl PPU {
         let address = address.into();
         match address {
             PPUAddress::Address => self.address.update(data.into()),
-            PPUAddress::Controller => self.ctrl.update(data.into()),
+            PPUAddress::Controller => {
+                let before_nmi_status = self.ctrl.generate_vblank_nmi();
+                self.ctrl.update(data.into());
+                if !before_nmi_status
+                    && self.ctrl.generate_vblank_nmi()
+                    && self.status.is_in_vblank()
+                {
+                    self.nmi_sender.send(true).unwrap();
+                }
+            }
             PPUAddress::Mask => self.mask.update(data.into()),
             PPUAddress::Scroll => self.scroll.write(data.into()),
             PPUAddress::OAMAddress => self.oam_addr = data.into(),
@@ -176,5 +194,27 @@ impl PPU {
             (Mirroring::Horizontal, 3) => vram_index - 0x800,
             _ => vram_index,
         }
+    }
+
+    pub fn tick(&mut self, cycles: u8) -> bool {
+        self.cycles += cycles as usize;
+        if self.cycles >= 341 {
+            self.cycles = self.cycles - 341;
+            self.scanline += 1;
+
+            if self.scanline == 241 {
+                if self.ctrl.generate_vblank_nmi() {
+                    self.status.set_vblank_status(true);
+                    todo!("trigger interrupt")
+                }
+            }
+        }
+        return if self.scanline >= 262 {
+            self.scanline = 0;
+            self.status.reset_vblank_status();
+            true
+        } else {
+            false
+        };
     }
 }
