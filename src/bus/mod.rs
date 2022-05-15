@@ -26,17 +26,13 @@ impl MemoryBus {
         }
     }
 
-    pub fn get_chr_rom(&self) -> &[u8] {
-        &self.ppu.chr_rom
-    }
-
     pub fn read_byte(&mut self, address: u16) -> u8 {
         match address {
             RAM..=RAM_MIRRORS_END => {
                 let mirror_down_addr = address & 0b0000_0111_1111_1111;
                 self.memory[mirror_down_addr as usize]
             }
-            PPU_REGISTERS..=PPU_REGISTERS_MIRRORS_END | 0x4014 => self.ppu.read(address).into(),
+            0x2000..=PPU_REGISTERS_MIRRORS_END | 0x4014 => self.ppu.read(address).into(),
             0x8000..=0xFFFF => self.read_from_rom(address),
             _ => {
                 println!("Ignoring mem access at {}", address);
