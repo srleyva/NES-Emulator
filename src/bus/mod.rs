@@ -1,6 +1,7 @@
 use super::ppu::{PPUValue, PPU};
 use super::rom::Rom;
 
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub struct MemoryBus {
     memory: [u8; 2048],
     prg_rom: Vec<u8>,

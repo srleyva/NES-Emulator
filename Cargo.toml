@@ -10,9 +10,12 @@ edition = "2018"
 lazy_static = "1.4.0"
 bitflags = "1.2.1"
 
-sdl2 = "0.34.0"
-rand = "=0.7.3"
+sdl2 = "0.35"
+rand = "0.8"
+bytes = "1"
 
 [build-dependencies]
 serde_json = "1.0"
 codegen = "0.1"
+
+[test-dependencies]

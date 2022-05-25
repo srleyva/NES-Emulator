@@ -13,7 +13,7 @@ fn main() -> Result<()> {
     scope.import("super", "InstructionType");
     scope.import("super", "MemoryAdressingMode");
 
-    scope.raw("pub (crate) const INSTRUCTION_SET: [Instruction; 255] = [");
+    scope.raw("pub const INSTRUCTION_SET: [Instruction; 255] = [");
 
     let mut instructions = HashMap::new();
     for item in value.as_array().unwrap() {

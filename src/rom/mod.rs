@@ -1,7 +1,7 @@
 use std::fs::File;
 use std::io::Read;
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Clone, Eq)]
 pub enum Mirroring {
     Vertical,
     Horizontal,

@@ -73,7 +73,7 @@ impl From<u16> for PPUAddress {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 
 pub(crate) struct PPU {
     chr_rom: Vec<u8>,

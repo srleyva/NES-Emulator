@@ -1,4 +1,4 @@
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct Scroll {
     pub scroll_x: u8,
     pub scroll_y: u8,

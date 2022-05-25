@@ -1,5 +1,5 @@
-mod instructions;
-mod processor_status;
+pub mod instructions;
+pub mod processor_status;
 
 use super::bus::MemoryBus;
 use instructions::{
@@ -9,6 +9,7 @@ use processor_status::ProcesssorStatus;
 
 const STACK: u16 = 0x0100;
 
+#[derive(Clone, Debug)]
 pub struct CPU {
     program_counter: u16,
     stack_pointer: u8,
@@ -19,31 +20,54 @@ pub struct CPU {
     pub(crate) bus: MemoryBus,
 }
 
+impl PartialEq for CPU {
+    fn eq(&self, other: &Self) -> bool {
+        return self.x == other.x
+            && self.y == self.y
+            && self.a == self.a
+            && self.processor_status == other.processor_status;
+    }
+}
+
+impl Eq for CPU {}
+
 impl std::fmt::Display for CPU {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Registers: a=[{:#04X?}] x=[{:#04X?}] y=[{:#04X?}] StackPointer=[{:#04X?}] ProgramCounter=[{:#04X?}, ProcessorStatus=[{}]]", self.a, self.x, self.y, self.stack_pointer, self.program_counter, self.processor_status)
+        write!(f, "Registers: a=[{:#04X?}] x=[{:#04X?}] y=[{:#04X?}] StackPointer=[{:#04X?}] ProgramCounter=[{:#04X?} ProcessorStatus=[{}]]", self.a, self.x, self.y, self.stack_pointer, self.program_counter, self.processor_status)
     }
 }
 
 impl CPU {
     pub fn new(rom: MemoryBus) -> Self {
-        let mut cpu = Self {
-            program_counter: 0x8000,
-            stack_pointer: 0xfd,
-            a: 0,
-            x: 0,
-            y: 0,
-            processor_status: ProcesssorStatus::default(),
+        let mut cpu = Self::new_with_state(rom, 0x8000, 0xFD, 0, 0, 0, ProcesssorStatus::default());
+        cpu.reset_cpu();
+        cpu
+    }
+
+    pub fn new_with_state(
+        rom: MemoryBus,
+        program_counter: u16,
+        stack_pointer: u8,
+        a: u8,
+        x: u8,
+        y: u8,
+        processor_status: ProcesssorStatus,
+    ) -> Self {
+        let cpu = Self {
+            program_counter,
+            stack_pointer,
+            a,
+            x,
+            y,
+            processor_status,
             bus: rom,
         };
-
-        cpu.reset_cpu();
         cpu
     }
 
     pub fn start_with_callback<F>(&mut self, mut callback: F)
     where
-        F: FnMut(&mut CPU),
+        F: FnMut(&mut CPU, &Instruction),
     {
         loop {
             let instruction = get_instruction_from_opcode(self.read_next_byte());
@@ -63,7 +87,6 @@ impl CPU {
                 InstructionType::BPL => self.bpl(instruction),
                 InstructionType::BRK => {
                     self.processor_status.set_break(true);
-                    return;
                 }
                 InstructionType::BVC => self.bvc(instruction),
                 InstructionType::BVS => self.bvs(instruction),
@@ -116,7 +139,10 @@ impl CPU {
                 println!();
                 println!("CPU: {}", self);
             }
-            callback(self);
+            callback(self, instruction);
+            if self.processor_status.get_break() {
+                return;
+            }
         }
     }
 
@@ -635,7 +661,7 @@ mod test {
     }
 
     pub fn start(cpu: &mut CPU) {
-        cpu.start_with_callback(|_| {});
+        cpu.start_with_callback(|_, _| {});
     }
 
     #[test]

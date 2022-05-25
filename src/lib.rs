@@ -1,9 +1,9 @@
 mod apu;
-mod bus;
-mod cpu;
+pub mod bus;
+pub mod cpu;
 mod gamepad;
 mod ppu;
-mod rom;
+pub mod rom;
 
 #[macro_use]
 extern crate bitflags;
@@ -115,10 +115,10 @@ pub fn start_game_from_rom(rom: Rom) {
     let mut screen_state = [0_u8; 32 * 3 * 32];
     let mut rng = rand::thread_rng();
 
-    cpu.start_with_callback(move |cpu| {
+    cpu.start_with_callback(move |cpu, _instruction| {
         handle_user_input(cpu, &mut event_pump);
 
-        cpu.bus.write_byte(0xfe, rng.gen_range(1, 16));
+        cpu.bus.write_byte(0xfe, rng.gen_range(1..16));
 
         if read_screen_state(cpu, &mut screen_state) {
             texture.update(None, &screen_state, 32 * 3).unwrap();

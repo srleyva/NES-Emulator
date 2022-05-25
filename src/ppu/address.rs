@@ -1,4 +1,4 @@
-#[derive(Debug, Default)]
+#[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub(crate) struct Address {
     value: (u8, u8),
     pointer: bool, // True is low pointer, False is high pointer

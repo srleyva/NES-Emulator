@@ -1,4 +1,4 @@
-#[derive(Default)]
+#[derive(Default, Debug, Clone, PartialEq, Eq)]
 pub struct ProcesssorStatus {
     pub(crate) inner: u8,
 }
@@ -20,6 +20,26 @@ impl std::fmt::Display for ProcesssorStatus {
 }
 
 impl ProcesssorStatus {
+    pub fn new(
+        carry: bool,
+        zero: bool,
+        interrupt: bool,
+        decimal: bool,
+        brk: bool,
+        overflow: bool,
+        negative: bool,
+    ) -> Self {
+        let mut status = ProcesssorStatus::default();
+        status.set_carry(carry);
+        status.set_zero(zero);
+        status.set_interrupt(interrupt);
+        status.set_decimal(decimal);
+        status.set_break(brk);
+        status.set_overflow(overflow);
+        status.set_negative(negative);
+
+        status
+    }
     /*
     0 - Carry
     1 - Zero
@@ -106,8 +126,8 @@ impl ProcesssorStatus {
         self.inner & 0b1000_0000 == 0b1000_0000
     }
 
-    pub fn set_negative(&mut self, brk: bool) {
-        if brk {
+    pub fn set_negative(&mut self, negative: bool) {
+        if negative {
             self.inner |= 0b1000_0000
         } else {
             self.inner &= 0b0111_1111

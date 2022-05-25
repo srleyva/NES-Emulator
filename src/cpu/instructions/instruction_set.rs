@@ -1,6 +1,6 @@
 use super::{Instruction, InstructionType, MemoryAdressingMode};
 
-pub(crate) const INSTRUCTION_SET: [Instruction; 255] = [
+pub const INSTRUCTION_SET: [Instruction; 255] = [
     instruction!(
         "BRK",
         0x0,

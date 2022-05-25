@@ -15,10 +15,11 @@ macro_rules! instruction {
     };
 }
 
-mod instruction_set;
+pub mod instruction_set;
 
 use instruction_set::INSTRUCTION_SET;
 
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum InstructionType {
     NotImplemented,
     ADC,
@@ -79,7 +80,7 @@ pub enum InstructionType {
     TYA,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub enum MemoryAdressingMode {
     Immediate,
     Implied,
@@ -96,6 +97,7 @@ pub enum MemoryAdressingMode {
     Accumulator,
 }
 
+#[derive(Debug, PartialEq, Eq, Clone, Copy)]
 pub struct Instruction {
     #[cfg(debug_assertions)]
     pub mnemonic: &'static str,
