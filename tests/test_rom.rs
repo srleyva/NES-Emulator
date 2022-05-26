@@ -1,4 +1,7 @@
-use std::collections::{vec_deque, VecDeque};
+use std::{
+    collections::{vec_deque, VecDeque},
+    fs::{self, File},
+};
 
 use nes::{
     bus::MemoryBus,
@@ -18,6 +21,11 @@ struct CPURecorder {
 }
 
 impl CPURecorder {
+    fn new_from_test_log(test_log_path: String) -> Self {
+        let file = File::open(test_log_path).expect("err opening file");
+        todo!()
+    }
+
     fn check_state(&mut self, cpu: &CPU) {
         assert_eq!(
             *cpu,
@@ -143,8 +151,30 @@ fn test_format_mem_access() {
     );
     let mut cpu_recorder = CPURecorder {
         count: 0,
-        expected_cpu_state: VecDeque::from([]),
-        expected_instruction: VecDeque::from([]),
+        expected_cpu_state: VecDeque::from([
+            CPU::new_with_state(
+                bus.clone(),
+                0x66,
+                0xFD,
+                0xAA,
+                0x00,
+                0x00,
+                ProcesssorStatus::new(false, false, false, false, false, false, true),
+            ),
+            CPU::new_with_state(
+                bus.clone(),
+                0x67,
+                0xFD,
+                0xAA,
+                0x00,
+                0x00,
+                ProcesssorStatus::new(false, false, false, false, true, false, true),
+            ),
+        ]),
+        expected_instruction: VecDeque::from([
+            instruction_set::INSTRUCTION_SET[0x11].clone(),
+            instruction_set::INSTRUCTION_SET[0x00].clone(),
+        ]),
     };
 
     cpu.start_with_callback(|cpu, instruction| {

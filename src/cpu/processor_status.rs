@@ -7,7 +7,8 @@ impl std::fmt::Display for ProcesssorStatus {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "Carry=[{}] Zero=[{}] interrupt=[{}] dec=[{}] break=[{}] overflow=[{}] negative=[{}]",
+            "Status [{}]: Carry=[{}] Zero=[{}] interrupt=[{}] dec=[{}] break=[{}] overflow=[{}] negative=[{}]",
+            self.inner,
             self.get_carry(),
             self.get_zero(),
             self.get_interrupt(),
