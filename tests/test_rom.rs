@@ -77,7 +77,7 @@ fn test_cpu() {
                 0x01,
                 0x01,
                 0x03,
-                ProcesssorStatus::new(false, false, false, false, false, false, false),
+                ProcesssorStatus::new(false, false, false, false, false, false, false, false),
             ),
             CPU::new_with_state(
                 bus.clone(),
@@ -86,7 +86,7 @@ fn test_cpu() {
                 0x01,
                 0x00,
                 0x03,
-                ProcesssorStatus::new(false, true, false, false, false, false, false),
+                ProcesssorStatus::new(false, true, false, false, false, false, false, false),
             ),
             CPU::new_with_state(
                 bus.clone(),
@@ -95,7 +95,7 @@ fn test_cpu() {
                 0x01,
                 0x00,
                 0x02,
-                ProcesssorStatus::new(false, false, false, false, false, false, false),
+                ProcesssorStatus::new(false, false, false, false, false, false, false, false),
             ),
             CPU::new_with_state(
                 bus.clone(),
@@ -104,7 +104,7 @@ fn test_cpu() {
                 0x01,
                 0x00,
                 0x02,
-                ProcesssorStatus::new(false, false, false, false, true, false, false),
+                ProcesssorStatus::new(false, false, false, false, true, false, false, false),
             ),
         ]),
         expected_instruction: VecDeque::from([
@@ -154,7 +154,7 @@ fn test_format_mem_access() {
                 0xAA,
                 0x00,
                 0x00,
-                ProcesssorStatus::new(false, false, false, false, false, false, true),
+                ProcesssorStatus::new(false, false, false, false, false, false, false, true),
             ),
             CPU::new_with_state(
                 bus.clone(),
@@ -163,7 +163,7 @@ fn test_format_mem_access() {
                 0xAA,
                 0x00,
                 0x00,
-                ProcesssorStatus::new(false, false, false, false, true, false, true),
+                ProcesssorStatus::new(false, false, false, false, true, false, false, true),
             ),
         ]),
         expected_instruction: VecDeque::from([

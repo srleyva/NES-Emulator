@@ -26,6 +26,10 @@ impl MemoryBus {
         }
     }
 
+    pub fn poll_nmi_status(&self) -> Option<bool> {
+        None
+    }
+
     pub fn read_byte(&mut self, address: u16) -> u8 {
         match address {
             RAM..=RAM_MIRRORS_END => {

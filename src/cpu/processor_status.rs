@@ -27,6 +27,7 @@ impl ProcesssorStatus {
         interrupt: bool,
         decimal: bool,
         brk: bool,
+        brk2: bool,
         overflow: bool,
         negative: bool,
     ) -> Self {
@@ -36,6 +37,7 @@ impl ProcesssorStatus {
         status.set_interrupt(interrupt);
         status.set_decimal(decimal);
         status.set_break(brk);
+        status.set_break2(brk2);
         status.set_overflow(overflow);
         status.set_negative(negative);
 
@@ -108,6 +110,18 @@ impl ProcesssorStatus {
             self.inner |= 0b0001_0000
         } else {
             self.inner &= 0b1110_1111
+        }
+    }
+
+    pub fn get_break2(&self) -> bool {
+        self.inner & 0b0010_0000 == 0b0010_0000
+    }
+
+    pub fn set_break2(&mut self, brk: bool) {
+        if brk {
+            self.inner |= 0b0010_0000
+        } else {
+            self.inner &= 0b1101_1111
         }
     }
 

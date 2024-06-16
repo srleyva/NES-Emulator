@@ -18,7 +18,6 @@ pub struct CPU {
     y: u8,
     processor_status: ProcesssorStatus,
     pub(crate) bus: MemoryBus,
-    plus_1_cycle: bool,
 }
 
 impl PartialEq for CPU {
@@ -62,7 +61,6 @@ impl CPU {
             y,
             processor_status,
             bus: rom,
-            plus_1_cycle: false,
         };
         cpu
     }
@@ -76,6 +74,10 @@ impl CPU {
             let instruction = get_instruction_from_opcode(self.read_next_byte());
             if cfg!(debug_assertions) {
                 print!("{}", instruction);
+            }
+
+            if let Some(_nmi) = self.bus.poll_nmi_status() {
+                self.interrupt_nmi()
             }
 
             let cycles: u8 = match instruction.instruction_type {
@@ -149,11 +151,24 @@ impl CPU {
                 return;
             }
 
-            self.bus.tick(instruction.cycle);
+            self.bus.tick(cycles);
             if program_counter_state == self.program_counter {
-                self.program_counter += (instruction.cycle - 1) as u16;
+                self.program_counter += (cycles - 1) as u16;
             }
         }
+    }
+
+    fn interrupt_nmi(&mut self) {
+        self.push_word(self.program_counter);
+        let mut flag = self.processor_status.clone();
+        flag.set_break(false);
+        flag.set_break2(true);
+
+        self.push(flag.inner);
+        self.processor_status.set_interrupt(false);
+
+        self.bus.tick(2);
+        self.program_counter = self.bus.read_word(0xfffA);
     }
 
     /*
