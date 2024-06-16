@@ -21,11 +21,6 @@ struct CPURecorder {
 }
 
 impl CPURecorder {
-    fn new_from_test_log(test_log_path: String) -> Self {
-        let file = File::open(test_log_path).expect("err opening file");
-        todo!()
-    }
-
     fn check_state(&mut self, cpu: &CPU) {
         assert_eq!(
             *cpu,

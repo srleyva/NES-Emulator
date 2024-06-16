@@ -2,6 +2,11 @@
 
 Just messing around with building an NES Emulator. 
 
+## Deps
+
+- libsdl2-dev
+- rust
+
 ## Running 
 
 1. Download NES Rom 

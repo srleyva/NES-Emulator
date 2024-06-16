@@ -12,6 +12,7 @@ const RAM: u16 = 0x0000;
 const RAM_MIRRORS_END: u16 = 0x1FFF;
 const PPU_REGISTERS: u16 = 0x2000;
 const PPU_REGISTERS_MIRRORS_END: u16 = 0x3FFF;
+const OAM_DMA: u16 = 0x4014;
 
 impl MemoryBus {
     pub fn new(rom: Rom) -> Self {
@@ -29,7 +30,9 @@ impl MemoryBus {
                 let mirror_down_addr = address & 0b0000_0111_1111_1111;
                 self.memory[mirror_down_addr as usize]
             }
-            0x2000..=PPU_REGISTERS_MIRRORS_END | 0x4014 => self.ppu.read(address).into(),
+            PPU_REGISTERS..=PPU_REGISTERS_MIRRORS_END | OAM_DMA => {
+                self.ppu.read_register(address).into()
+            }
             0x8000..=0xFFFF => self.read_from_rom(address),
             _ => {
                 println!("Ignoring mem access at {}", address);
@@ -44,8 +47,8 @@ impl MemoryBus {
                 let mirror_down_addr = address & 0b11111111111;
                 self.memory[mirror_down_addr as usize] = data;
             }
-            0x2000..=PPU_REGISTERS_MIRRORS_END | 0x4014 => {
-                self.ppu.write(address, PPUValue::Byte(data))
+            PPU_REGISTERS..=PPU_REGISTERS_MIRRORS_END | OAM_DMA => {
+                self.ppu.write_register(address, PPUValue::Byte(data))
             }
             0x8000..=0xFFFF => panic!("Attempt to write to Cartridge ROM space: {:x}", address),
 

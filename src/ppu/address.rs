@@ -23,8 +23,12 @@ impl Address {
     }
 
     pub fn increment(&mut self, value: u8) {
-        let addr = self.get();
-        self.set(addr.wrapping_add(1));
+        let lo = self.value.1;
+        self.value.1 = self.value.1.wrapping_add(value);
+        if lo > self.value.1 {
+            self.value.0 = self.value.0.wrapping_add(1);
+        }
+        self.set_mirror_down()
     }
 
     pub fn update(&mut self, data: u8) {
@@ -33,11 +37,14 @@ impl Address {
         } else {
             self.value.1 = data;
         }
+        self.set_mirror_down();
+        self.pointer = !self.pointer;
+    }
 
+    fn set_mirror_down(&mut self) {
         if self.get() > 0x3fff {
             self.set(self.get() & 0b11111111111111);
         }
-        self.pointer = !self.pointer;
     }
 
     pub fn reset_latch(&mut self) {
@@ -68,6 +75,9 @@ mod test {
         address.increment(1);
 
         assert_eq!(address.get(), 0x3017);
+
+        address.increment(3);
+        assert_eq!(address.get(), 0x301A);
     }
 
     #[test]

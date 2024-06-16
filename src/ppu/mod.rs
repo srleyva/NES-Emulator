@@ -31,6 +31,12 @@ pub enum PPUValue {
     Buffer(&'static [u8; 256]),
 }
 
+impl Into<PPUValue> for u8 {
+    fn into(self) -> PPUValue {
+        PPUValue::Byte(self)
+    }
+}
+
 impl From<PPUValue> for u8 {
     fn from(data: PPUValue) -> Self {
         match data {
@@ -53,13 +59,13 @@ impl From<u16> for PPUAddress {
     fn from(value: u16) -> Self {
         match value {
             0..=0x1fff => Self::CHRROM(value),
-            0x2000 => Self::Controller,
-            0x2001 => Self::Mask,
+            0x2000 => Self::Controller, // write-only
+            0x2001 => Self::Mask,       // write-only
             0x2002 => Self::Status,
-            0x2003 => Self::OAMAddress,
+            0x2003 => Self::OAMAddress, // write-only
             0x2004 => Self::OAMData,
-            0x2005 => Self::Scroll,
-            0x2006 => Self::Address,
+            0x2005 => Self::Scroll,  // write-only
+            0x2006 => Self::Address, // write-only
             0x2007 => Self::Data,
             0x2009..=0x2fff => Self::RAM(value),
             0x3000..=0x3eff => panic!(
@@ -67,7 +73,7 @@ impl From<u16> for PPUAddress {
                 value
             ),
             0x3f00..=0x3fff => Self::PaletteTable(value),
-            0x4014 => Self::OAMDMA,
+            0x4014 => Self::OAMDMA, // write-only
             _ => panic!("Unsupported address {}", value),
         }
     }
@@ -76,19 +82,34 @@ impl From<u16> for PPUAddress {
 #[derive(Debug, Clone, PartialEq, Eq)]
 
 pub(crate) struct PPU {
-    chr_rom: Vec<u8>,
+    // PPU MemoryMap
+    // 0x4000 - 0x3f00
     palette_table: [u8; 32],
+    // 0x3f00 - 0x2000
     vram: [u8; 2048],
+    // 0x2000 - 0x0000
+    chr_rom: Vec<u8>,
+
     oam_addr: u8,
     oam_data: [u8; 256],
     mirroring: Mirroring,
     buffer: u8,
 
-    address: Address,
+    // PPU Registers
+    // 0x2000
     ctrl: Control,
+    // 0x2001
     mask: Mask,
+    // 0x2002
     status: Status,
+    // 0x2005
     scroll: Scroll,
+    // 0x2006
+    address: Address,
+    // 0x2007
+    // DATA
+    // 0x4014
+    // OAM DMA
 }
 
 impl PPU {
@@ -109,11 +130,56 @@ impl PPU {
         }
     }
 
-    pub fn read<T>(&mut self, address: T) -> PPUValue
+    pub fn read_register<T>(&mut self, register: T) -> PPUValue
     where
         T: Into<PPUAddress>,
     {
-        let address = address.into();
+        let register = register.into();
+        match register {
+            PPUAddress::Controller
+            | PPUAddress::Mask
+            | PPUAddress::OAMAddress
+            | PPUAddress::Scroll
+            | PPUAddress::Address
+            | PPUAddress::OAMDMA => {
+                panic!("{:?} is a write only register", register)
+            }
+            PPUAddress::OAMData => self.oam_data[self.oam_addr as usize].into(),
+            PPUAddress::Data => self.read_data(),
+            _ => panic!("register not provided: {:?}", register),
+        }
+    }
+
+    pub fn write_register<T>(&mut self, register: T, data: PPUValue)
+    where
+        T: Into<PPUAddress>,
+    {
+        let register = register.into();
+        match register {
+            PPUAddress::Controller => self.ctrl.update(data.into()),
+            PPUAddress::Mask => self.mask.update(data.into()),
+            PPUAddress::Status => panic!("status is a r/o register but was written to!"),
+            PPUAddress::OAMAddress => self.oam_addr = data.into(),
+            PPUAddress::OAMData => {
+                self.oam_data[self.oam_addr as usize] = data.into();
+                self.oam_addr = self.oam_addr.wrapping_add(1)
+            }
+            PPUAddress::Scroll => self.scroll.write(data.into()),
+            PPUAddress::Address => self.address.update(data.into()),
+            PPUAddress::Data => self.write_data(data),
+            PPUAddress::OAMDMA => {
+                let data: &'static [u8; 256] = data.into();
+                for x in data.iter() {
+                    self.oam_data[self.oam_addr as usize] = *x;
+                    self.oam_addr = self.oam_addr.wrapping_add(1);
+                }
+            }
+            _ => panic!("register not provided: {:?}", register),
+        }
+    }
+
+    fn read_data(&mut self) -> PPUValue {
+        let address = self.address.get().into();
         self.address.increment(self.ctrl.vram_addr_increment());
 
         match address {
@@ -139,28 +205,13 @@ impl PPU {
         }
     }
 
-    pub fn write<T>(&mut self, address: T, data: PPUValue)
-    where
-        T: Into<PPUAddress>,
-    {
-        let address = address.into();
+    fn write_data(&mut self, data: PPUValue) {
+        let address: PPUAddress = self.address.get().into();
+        self.address.increment(self.ctrl.vram_addr_increment());
+
         match address {
-            PPUAddress::Address => self.address.update(data.into()),
-            PPUAddress::Controller => self.ctrl.update(data.into()),
-            PPUAddress::Mask => self.mask.update(data.into()),
-            PPUAddress::Scroll => self.scroll.write(data.into()),
-            PPUAddress::OAMAddress => self.oam_addr = data.into(),
-            PPUAddress::OAMData => {
-                self.oam_data[self.oam_addr as usize] = data.into();
-                self.oam_addr = self.oam_addr.wrapping_add(1)
-            }
-            PPUAddress::OAMDMA => {
-                let data: &'static [u8; 256] = data.into();
-                for x in data.iter() {
-                    self.oam_data[self.oam_addr as usize] = *x;
-                    self.oam_addr = self.oam_addr.wrapping_add(1);
-                }
-            }
+            PPUAddress::CHRROM(addr) => {}
+            PPUAddress::RAM(addr) => {}
             _ => panic!("Write on {:?} not supported", address),
         }
     }

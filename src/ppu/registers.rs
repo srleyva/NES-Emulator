@@ -1,5 +1,4 @@
 bitflags! {
-    #[derive(Default)]
     pub struct Control: u8 {
         const NAMETABLE1              = 0b00000001;
         const NAMETABLE2              = 0b00000010;
@@ -12,11 +11,13 @@ bitflags! {
     }
 }
 
-impl Control {
-    pub fn new() -> Self {
+impl Default for Control {
+    fn default() -> Self {
         Self::from_bits_truncate(0b00000000)
     }
+}
 
+impl Control {
     pub fn vram_addr_increment(&self) -> u8 {
         if !self.contains(Self::VRAM_ADD_INCREMENT) {
             1
