@@ -26,8 +26,8 @@ impl MemoryBus {
         }
     }
 
-    pub fn poll_nmi_status(&self) -> Option<bool> {
-        None
+    pub fn poll_nmi_status(&self) -> Option<usize> {
+        self.ppu.nmi_interrupt
     }
 
     pub fn read_byte(&mut self, address: u16) -> u8 {

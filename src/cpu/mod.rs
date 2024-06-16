@@ -18,6 +18,7 @@ pub struct CPU {
     y: u8,
     processor_status: ProcesssorStatus,
     pub(crate) bus: MemoryBus,
+    irq_interrupt: Option<usize>,
 }
 
 impl PartialEq for CPU {
@@ -61,6 +62,7 @@ impl CPU {
             y,
             processor_status,
             bus: rom,
+            irq_interrupt: None,
         };
         cpu
     }

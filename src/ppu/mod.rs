@@ -94,6 +94,7 @@ pub(crate) struct PPU {
     oam_data: [u8; 256],
     mirroring: Mirroring,
     buffer: u8,
+    pub(crate) nmi_interrupt: Option<usize>,
 
     // PPU Registers
     ctrl: Control,
@@ -124,6 +125,7 @@ impl PPU {
             buffer: 0,
             scanline: 0,
             cycles: 0,
+            nmi_interrupt: None,
         }
     }
 
@@ -153,7 +155,16 @@ impl PPU {
     {
         let register = register.into();
         match register {
-            PPUAddress::Controller => self.ctrl.update(data.into()),
+            PPUAddress::Controller => {
+                let before_nmi_status = self.ctrl.generate_vblank_nmi();
+                self.ctrl.update(data.into());
+                if !before_nmi_status
+                    && self.ctrl.generate_vblank_nmi()
+                    && self.status.is_in_vblank()
+                {
+                    self.nmi_interrupt = Some(1);
+                }
+            }
             PPUAddress::Mask => self.mask.update(data.into()),
             PPUAddress::Status => panic!("status is a r/o register but was written to!"),
             PPUAddress::OAMAddress => self.oam_addr = data.into(),
