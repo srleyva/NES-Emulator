@@ -1,4 +1,7 @@
-use crate::cpu::interrupt::Interrupt;
+use crate::cpu::interrupt::{
+    Interrupt, InterruptType, IRQ_BRK_VECTOR, IRQ_BRK_VECTOR_END, NMI_VECTOR, NMI_VECTOR_END,
+    RESET_VECTOR, RESET_VECTOR_END,
+};
 
 use super::ppu::{PPUValue, PPU};
 use super::rom::Rom;
@@ -7,7 +10,7 @@ use super::rom::Rom;
 pub struct MemoryBus {
     memory: [u8; 2048],
     prg_rom: Vec<u8>,
-    ppu: PPU,
+    pub ppu: PPU,
     cycles: usize,
 }
 
@@ -28,7 +31,7 @@ impl MemoryBus {
         }
     }
 
-    pub fn poll_nmi_status(&self) -> Option<Interrupt> {
+    pub fn poll_nmi_status(&self) -> Option<InterruptType> {
         self.ppu.nmi_interrupt.clone()
     }
 
@@ -43,13 +46,13 @@ impl MemoryBus {
             }
             0x8000..=0xFFFF => self.read_from_rom(address),
             _ => {
-                println!("Ignoring mem access at {}", address);
+                println!("Ignoring mem access at {:x} ({})", address, address);
                 0
             }
         }
     }
 
-    pub fn write_byte(&mut self, address: u16, data: u8) {
+    pub fn write_byte(&mut self, mut address: u16, data: u8) {
         match address {
             RAM..=RAM_MIRRORS_END => {
                 let mirror_down_addr = address & 0b11111111111;
@@ -58,7 +61,26 @@ impl MemoryBus {
             PPU_REGISTERS..=PPU_REGISTERS_MIRRORS_END | OAM_DMA => {
                 self.ppu.write_register(address, PPUValue::Byte(data))
             }
-            0x8000..=0xFFFF => panic!("Attempt to write to Cartridge ROM space: {:x}", address),
+            #[cfg(test)]
+            IRQ_BRK_VECTOR..=IRQ_BRK_VECTOR_END
+            | NMI_VECTOR..=NMI_VECTOR_END
+            | RESET_VECTOR..=RESET_VECTOR_END => {
+                address -= 0x8000;
+                assert!(
+                    address as usize <= self.prg_rom.len(),
+                    "addr: {} len: {}",
+                    address,
+                    self.prg_rom.len()
+                );
+                println!(
+                    "Setting Handler up (only should be done for testing): {:x}",
+                    address
+                );
+                self.prg_rom[address as usize] = data
+            }
+            0x8000..=0xFFFF => {
+                panic!("Attempt to write to Cartridge ROM space: {:x}", address);
+            }
 
             _ => {
                 println!("Ignoring mem write-access at {}", address);
@@ -91,6 +113,25 @@ impl MemoryBus {
     pub fn tick(&mut self, cycles: u8) {
         self.cycles += cycles as usize;
         self.ppu.tick(cycles * 3);
+    }
+
+    #[cfg(test)]
+    pub(super) fn write_interrupt_handler(
+        &mut self,
+        interrupt_type: InterruptType,
+        handler_addr: u16,
+        handler: Vec<u8>,
+    ) {
+        let start = handler_addr as usize;
+        let end = start + handler.len();
+        assert!(end <= self.prg_rom.len());
+        self.prg_rom[start..end].copy_from_slice(&handler);
+        let addr = match interrupt_type {
+            InterruptType::BRK => IRQ_BRK_VECTOR,
+            InterruptType::IRQ => IRQ_BRK_VECTOR,
+            InterruptType::NMI => NMI_VECTOR,
+        };
+        self.write_word(addr, handler_addr + self.prg_rom.len() as u16);
     }
 }
 

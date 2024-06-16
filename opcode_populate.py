@@ -29,5 +29,11 @@ for item in myOpsCodes:
     meta = opsCodes.get(item['opcode'], {'cycles': 0, '+1': False})
     item.update(meta)
 
+illegal_op_codes = [
+    {
+    
+    }
+]
+
 myOpsCodesfile = open("./ops_codes.json", 'w')
 myOpsCodesfile.write(json.dumps(myOpsCodes))

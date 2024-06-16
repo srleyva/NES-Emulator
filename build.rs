@@ -1,6 +1,7 @@
 use codegen::Scope;
 use serde_json::{Result, Value};
 use std::collections::HashMap;
+use std::fmt::format;
 use std::fs::{read_to_string, write};
 use std::u8;
 
@@ -47,6 +48,23 @@ fn main() -> Result<()> {
     }
 
     scope.raw("];");
+
+    // scope.raw("impl Into<u8> for InstructionType {");
+    // scope.raw("fn into(self) -> u8 {");
+    // scope.raw("match self {");
+    // for item in value.as_array().unwrap() {
+    //     let mnemonic = item["name"].as_str().unwrap();
+    //     let op_code = item["opcode"].as_str().unwrap().to_owned().replace("$", "");
+    //     let op_code = u8::from_str_radix(&op_code, 16).unwrap();
+
+    //     let instruction = format!("InstructionType::{}", mnemonic.to_uppercase());
+    //     let op_code = format!("{:#x}", op_code);
+    //     let match_case = format!("{} => {},", instruction, op_code);
+    //     scope.raw(&match_case);
+    // }
+    // scope.raw("}");
+    // scope.raw("}");
+    // scope.raw("}");
 
     write("src/cpu/instructions/instruction_set.rs", scope.to_string()).unwrap();
     std::process::Command::new("cargo")

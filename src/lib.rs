@@ -9,7 +9,7 @@ pub mod rom;
 extern crate bitflags;
 
 use bus::MemoryBus;
-use cpu::CPU;
+use cpu::{processor_status::ProcessorStatus, CPU};
 use rand::Rng;
 use rom::Rom;
 use sdl2::{event::Event, keyboard::Keycode, pixels::Color, pixels::PixelFormatEnum, EventPump};
@@ -109,25 +109,34 @@ pub fn start_game_from_rom(rom: Rom) {
         .create_texture_target(PixelFormatEnum::RGB24, 32, 32)
         .unwrap();
 
-    let mut cpu = CPU::new(MemoryBus::new(rom));
-    cpu.reset_cpu();
+    let mut cpu = CPU::new_with_state(
+        MemoryBus::new(rom),
+        0xC000,
+        0xFD,
+        1,
+        2,
+        3,
+        ProcessorStatus::default(),
+    );
 
     let mut screen_state = [0_u8; 32 * 3 * 32];
     let mut rng = rand::thread_rng();
 
     cpu.start_with_callback(move |cpu, _instruction| {
-        handle_user_input(cpu, &mut event_pump);
+        // handle_user_input(cpu, &mut event_pump);
 
-        cpu.bus.write_byte(0xfe, rng.gen_range(1..16));
+        // cpu.bus.write_byte(0xfe, rng.gen_range(1..16));
 
-        if read_screen_state(cpu, &mut screen_state) {
-            texture.update(None, &screen_state, 32 * 3).unwrap();
+        // if read_screen_state(cpu, &mut screen_state) {
+        //     let tile_frame = cpu.bus.ppu.show_tile(1, 0);
 
-            canvas.copy(&texture, None, None).unwrap();
+        //     texture.update(None, &tile_frame.data, 256 * 3).unwrap();
 
-            canvas.present();
-        }
+        //     canvas.copy(&texture, None, None).unwrap();
 
-        ::std::thread::sleep(std::time::Duration::new(0, 70_000));
+        //     canvas.present();
+        // }
+
+        ::std::thread::sleep(std::time::Duration::from_secs(2));
     });
 }

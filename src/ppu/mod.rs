@@ -1,14 +1,18 @@
 mod address;
 mod registers;
+pub mod render;
 mod scroll;
 
 use crate::{
-    cpu::interrupt::{Interrupt, NMI},
+    cpu::interrupt::{Interrupt, InterruptType, NMI},
+    ppu::render::SYSTEM_PALLETE,
     rom::Mirroring,
 };
 use address::Address;
 use registers::{Control, Mask, Status};
 use scroll::Scroll;
+
+use self::render::Frame;
 
 #[derive(Debug)]
 pub enum PPUAddress {
@@ -84,7 +88,7 @@ impl From<u16> for PPUAddress {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 
-pub(crate) struct PPU {
+pub struct PPU {
     // PPU MemoryMap
     // 0x4000 - 0x3f00
     palette_table: [u8; 32],
@@ -97,7 +101,7 @@ pub(crate) struct PPU {
     oam_data: [u8; 256],
     mirroring: Mirroring,
     buffer: u8,
-    pub(crate) nmi_interrupt: Option<Interrupt>,
+    pub(crate) nmi_interrupt: Option<InterruptType>,
 
     // PPU Registers
     ctrl: Control,
@@ -148,8 +152,39 @@ impl PPU {
             }
             PPUAddress::OAMData => self.oam_data[self.oam_addr as usize].into(),
             PPUAddress::Data => self.read_data(),
+            PPUAddress::Status => self.status.bits().into(),
             _ => panic!("register not provided: {:?}", register),
         }
+    }
+
+    pub fn show_tile(&self, bank: usize, tile_n: usize) -> Frame {
+        assert!(bank <= 1);
+
+        let mut frame = Frame::default();
+        let bank = (bank * 0x1000) as usize;
+
+        let tile = &self.chr_rom[(bank + tile_n * 16)..=(bank + tile_n * 16 + 15)];
+
+        for y in 0..=7 {
+            let mut upper = tile[y];
+            let mut lower = tile[y + 8];
+
+            for x in (0..=7).rev() {
+                let value = (1 & upper) << 1 | (1 & lower);
+                upper = upper >> 1;
+                lower = lower >> 1;
+                let rgb = match value {
+                    0 => SYSTEM_PALLETE[0x01],
+                    1 => SYSTEM_PALLETE[0x23],
+                    2 => SYSTEM_PALLETE[0x27],
+                    3 => SYSTEM_PALLETE[0x30],
+                    _ => panic!("can't be"),
+                };
+                frame.set_pixel(x, y, rgb)
+            }
+        }
+
+        frame
     }
 
     pub fn write_register<T>(&mut self, register: T, data: PPUValue)
@@ -165,7 +200,7 @@ impl PPU {
                     && self.ctrl.generate_vblank_nmi()
                     && self.status.is_in_vblank()
                 {
-                    self.nmi_interrupt = Some(NMI);
+                    self.nmi_interrupt = Some(InterruptType::NMI);
                 }
             }
             PPUAddress::Mask => self.mask.update(data.into()),

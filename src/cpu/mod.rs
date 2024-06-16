@@ -2,24 +2,28 @@ pub mod instructions;
 pub mod interrupt;
 pub mod processor_status;
 
-use self::interrupt::Interrupt;
+use core::panic;
+use std::fmt::Debug;
+
+use self::interrupt::{Interrupt, InterruptType, BRK, NMI};
 
 use super::bus::MemoryBus;
 use instructions::{
     get_instruction_from_opcode, Instruction, InstructionType, MemoryAdressingMode,
 };
-use processor_status::ProcesssorStatus;
+use processor_status::ProcessorStatus;
 
 const STACK: u16 = 0x0100;
+const OPCODE_EXIT: u8 = 0xf4;
 
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct CPU {
     program_counter: u16,
     stack_pointer: u8,
     a: u8,
     x: u8,
     y: u8,
-    processor_status: ProcesssorStatus,
+    processor_status: ProcessorStatus,
     pub(crate) bus: MemoryBus,
 }
 
@@ -40,9 +44,15 @@ impl std::fmt::Display for CPU {
     }
 }
 
+impl Debug for CPU {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(f, "Registers: a=[{:#04X?}] x=[{:#04X?}] y=[{:#04X?}] StackPointer=[{:#04X?}] ProgramCounter=[{:#04X?} ProcessorStatus=[{}]]", self.a, self.x, self.y, self.stack_pointer, self.program_counter, self.processor_status)
+    }
+}
+
 impl CPU {
     pub fn new(rom: MemoryBus) -> Self {
-        let mut cpu = Self::new_with_state(rom, 0x8000, 0xFD, 0, 0, 0, ProcesssorStatus::default());
+        let mut cpu = Self::new_with_state(rom, 0x8000, 0xFD, 0, 0, 0, ProcessorStatus::default());
         cpu.reset_cpu();
         cpu
     }
@@ -54,7 +64,7 @@ impl CPU {
         a: u8,
         x: u8,
         y: u8,
-        processor_status: ProcesssorStatus,
+        processor_status: ProcessorStatus,
     ) -> Self {
         let cpu = Self {
             program_counter,
@@ -76,11 +86,14 @@ impl CPU {
             let program_counter_state = self.program_counter;
             let instruction = get_instruction_from_opcode(self.read_next_byte());
             if cfg!(debug_assertions) {
-                print!("{}", instruction);
+                println!("{:?}", instruction);
             }
 
             if let Some(nmi) = self.bus.poll_nmi_status() {
-                self.interrupt(&nmi)
+                match nmi {
+                    InterruptType::NMI => self.interrupt(&NMI),
+                    _ => panic!("non-nmi interrupt sent: {:?}", nmi),
+                }
             }
 
             let cycles: u8 = match instruction.instruction_type {
@@ -94,10 +107,7 @@ impl CPU {
                 InstructionType::BMI => self.bmi(instruction),
                 InstructionType::BNE => self.bne(instruction),
                 InstructionType::BPL => self.bpl(instruction),
-                InstructionType::BRK => {
-                    self.processor_status.set_break(true);
-                    instruction.cycle
-                }
+                InstructionType::BRK => self.brk(instruction),
                 InstructionType::BVC => self.bvc(instruction),
                 InstructionType::BVS => self.bvs(instruction),
                 InstructionType::CLC => self.clc(instruction),
@@ -143,15 +153,21 @@ impl CPU {
                 InstructionType::TXA => self.txa(instruction),
                 InstructionType::TAY => self.tay(instruction),
                 InstructionType::TYA => self.tya(instruction),
-                InstructionType::NotImplemented => panic!("Not implemented! {}", instruction),
+                InstructionType::NotImplemented => {
+                    if instruction.op_code == OPCODE_EXIT {
+                        return;
+                    }
+                    println!("Not implemented! {}", instruction);
+                    self.nop(instruction)
+                }
             };
             if cfg!(debug_assertions) {
                 println!();
-                println!("CPU: {}", self);
+                //println!("CPU: {}", self);
             }
             callback(self, instruction);
-            if self.processor_status.get_break() {
-                return;
+            if self.processor_status.contains(ProcessorStatus::BREAK) {
+                self.interrupt(&BRK);
             }
 
             self.bus.tick(cycles);
@@ -162,13 +178,23 @@ impl CPU {
     }
 
     fn interrupt(&mut self, interrupt: &Interrupt) {
+        if self
+            .processor_status
+            .contains(ProcessorStatus::INTERRUPT_DISABLE)
+            && !matches!(interrupt.itype, InterruptType::IRQ)
+        {
+            return;
+        }
+        // if interrupt disable flag is set and interrupt type is not IRQ
+        println!("Handling Interrupt: {}", interrupt);
         self.push_word(self.program_counter);
         let mut flag = self.processor_status.clone();
-        flag.set_break(interrupt.flag_mask & 0b010000 == 1);
-        flag.set_break2(interrupt.flag_mask & 0b010000 == 1);
+        flag.insert(ProcessorStatus::BREAK);
+        flag.insert(ProcessorStatus::BREAK2);
 
-        self.push(flag.inner);
-        self.processor_status.set_interrupt(false);
+        self.push(flag.bits());
+        self.processor_status
+            .insert(ProcessorStatus::INTERRUPT_DISABLE);
 
         self.bus.tick(interrupt.cpu_cycles);
         self.program_counter = self.bus.read_word(interrupt.vector_addr);
@@ -212,42 +238,42 @@ impl CPU {
     }
 
     fn bcc(&mut self, instruction: &Instruction) -> u8 {
-        self.branch(!self.processor_status.get_carry());
+        self.branch(!self.processor_status.contains(ProcessorStatus::CARRY));
         instruction.cycle
     }
 
     fn bcs(&mut self, instruction: &Instruction) -> u8 {
-        self.branch(self.processor_status.get_carry());
+        self.branch(self.processor_status.contains(ProcessorStatus::CARRY));
         instruction.cycle
     }
 
     fn beq(&mut self, instruction: &Instruction) -> u8 {
-        self.branch(self.processor_status.get_zero());
+        self.branch(self.processor_status.contains(ProcessorStatus::ZERO));
         instruction.cycle
     }
 
     fn bmi(&mut self, instruction: &Instruction) -> u8 {
-        self.branch(self.processor_status.get_negative());
+        self.branch(self.processor_status.contains(ProcessorStatus::NEGATIVE));
         instruction.cycle
     }
 
     fn bne(&mut self, instruction: &Instruction) -> u8 {
-        self.branch(!self.processor_status.get_zero());
+        self.branch(!self.processor_status.contains(ProcessorStatus::ZERO));
         instruction.cycle
     }
 
     fn bpl(&mut self, instruction: &Instruction) -> u8 {
-        self.branch(!self.processor_status.get_negative());
+        self.branch(!self.processor_status.contains(ProcessorStatus::NEGATIVE));
         instruction.cycle
     }
 
     fn bvc(&mut self, instruction: &Instruction) -> u8 {
-        self.branch(!self.processor_status.get_overflow());
+        self.branch(!self.processor_status.contains(ProcessorStatus::OVERFLOW));
         instruction.cycle
     }
 
     fn bvs(&mut self, instruction: &Instruction) -> u8 {
-        self.branch(self.processor_status.get_overflow());
+        self.branch(self.processor_status.contains(ProcessorStatus::OVERFLOW));
         instruction.cycle
     }
 
@@ -256,6 +282,11 @@ impl CPU {
         self.processor_status.set_zero(data & self.a == 0);
         self.processor_status.set_negative(data & 0b10000000 > 0);
         self.processor_status.set_overflow(data & 0b01000000 > 0);
+        instruction.cycle
+    }
+
+    fn brk(&mut self, instruction: &Instruction) -> u8 {
+        self.interrupt(&BRK);
         instruction.cycle
     }
 
@@ -270,7 +301,7 @@ impl CPU {
     }
 
     fn cli(&mut self, instruction: &Instruction) -> u8 {
-        self.processor_status.set_interrupt(false);
+        self.processor_status.set_interrupt_disable(false);
         instruction.cycle
     }
 
@@ -448,24 +479,25 @@ impl CPU {
     }
 
     fn php(&mut self, instruction: &Instruction) -> u8 {
-        self.push(self.processor_status.inner);
+        self.push(self.processor_status.bits());
         instruction.cycle
     }
 
     fn pla(&mut self, instruction: &Instruction) -> u8 {
         let data = self.pop();
-        let page_cross = self.write_byte(&instruction.memory_addressing_mode, data);
-        todo!()
+        self.a = data;
+        self.set_negative_and_zero_process_status(self.a);
+        instruction.cycle
     }
 
     fn plp(&mut self, instruction: &Instruction) -> u8 {
-        self.processor_status.inner = self.pop();
+        self.processor_status = ProcessorStatus::from_bits_truncate(self.pop());
         instruction.cycle
     }
 
     fn rol(&mut self, instruction: &Instruction) -> u8 {
         let (mut data, page_cross) = self.read_byte(&instruction.memory_addressing_mode);
-        let carry = self.processor_status.get_carry();
+        let carry = self.processor_status.contains(ProcessorStatus::CARRY);
         self.processor_status
             .set_carry(data & 0b0100_0000 == 0b0100_0000);
         data <<= 1;
@@ -478,7 +510,7 @@ impl CPU {
 
     fn ror(&mut self, instruction: &Instruction) -> u8 {
         let (mut data, page_cross) = self.read_byte(&instruction.memory_addressing_mode);
-        let carry = self.processor_status.get_carry();
+        let carry = self.processor_status.contains(ProcessorStatus::CARRY);
         self.processor_status
             .set_carry(data & 0b0000_0001 == 0b0000_0001);
         data >>= 1;
@@ -495,7 +527,7 @@ impl CPU {
     }
 
     fn rti(&mut self, instruction: &Instruction) -> u8 {
-        self.processor_status.inner = self.pop();
+        self.processor_status = ProcessorStatus::from_bits_truncate(self.pop());
         self.program_counter = self.pop_word();
         instruction.cycle
     }
@@ -521,7 +553,7 @@ impl CPU {
     }
 
     fn sei(&mut self, instruction: &Instruction) -> u8 {
-        self.processor_status.set_interrupt(true);
+        self.processor_status.set_interrupt_disable(true);
         instruction.cycle
     }
 
@@ -625,7 +657,7 @@ impl CPU {
             MemoryAdressingMode::IndirectX => self.indirect_x_address(),
             MemoryAdressingMode::IndirectY => self.indirect_y_address(),
             MemoryAdressingMode::Relative => panic!("Look up not supported for relative"),
-            _ => panic!("Not Supported"),
+            _ => panic!("Not Supported: {:?}", memory_addressing_mode),
         };
         if cfg!(debug_assertions) {
             print!(" Addr: {:#04X?} PageCross: {:?}", addr, boundary_cross)
@@ -705,7 +737,7 @@ impl CPU {
     fn add(&mut self, reg_value: u8, data: u8) -> u8 {
         let sum = reg_value as u16
             + data as u16
-            + (if self.processor_status.get_carry() {
+            + (if self.processor_status.contains(ProcessorStatus::CARRY) {
                 1
             } else {
                 0
@@ -744,7 +776,7 @@ impl CPU {
     }
 
     pub(crate) fn reset_cpu(&mut self) {
-        self.processor_status = ProcesssorStatus::default();
+        self.processor_status = ProcessorStatus::default();
         self.a = 0x0;
         self.x = 0x0;
         self.y = 0x0;
@@ -767,25 +799,32 @@ impl CPU {
     fn set_negative_and_zero_process_status(&mut self, int: u8) {
         self.processor_status.set_zero(int == 0);
         self.processor_status
-            .set_negative(ProcesssorStatus::is_negative(int));
+            .set_negative(ProcessorStatus::is_negative(int));
     }
 }
 
 #[cfg(test)]
 mod test {
+    use std::time::Duration;
+
     use super::super::rom::{Mirroring, Rom};
     use super::*;
 
     fn fake_rom(game_code: Vec<u8>) -> MemoryBus {
-        let mut code = [0 as u8; 0x7FFF].to_vec();
-        code[0x00..game_code.len()].copy_from_slice(&game_code);
+        let mut prg_rom = vec![0; 0x8000];
+        let game_code_len = game_code.len();
+        prg_rom[0x00..game_code_len].copy_from_slice(&game_code);
         let rom = Rom {
-            prg_rom: code,
+            prg_rom,
             chr_rom: vec![],
             mapper: 0,
             screen_mirroring: Mirroring::Horizontal,
         };
-        return MemoryBus::new(rom);
+        let mut bus = MemoryBus::new(rom);
+
+        let brk_handler = vec![OPCODE_EXIT; 4];
+        bus.write_interrupt_handler(InterruptType::BRK, 0x8000 - 0x10, brk_handler);
+        bus
     }
 
     pub fn start(cpu: &mut CPU) {
@@ -832,8 +871,8 @@ mod test {
         start(&mut cpu);
 
         assert_eq!(cpu.a, 0x10);
-        assert!(!cpu.processor_status.get_carry());
-        assert!(!cpu.processor_status.get_overflow());
+        assert!(!cpu.processor_status.contains(ProcessorStatus::CARRY));
+        assert!(!cpu.processor_status.contains(ProcessorStatus::OVERFLOW));
     }
 
     #[test]
@@ -845,8 +884,8 @@ mod test {
         start(&mut cpu);
 
         assert_eq!(cpu.a, 15);
-        assert!(cpu.processor_status.get_carry());
-        assert!(!cpu.processor_status.get_overflow());
+        assert!(cpu.processor_status.contains(ProcessorStatus::CARRY));
+        assert!(!cpu.processor_status.contains(ProcessorStatus::OVERFLOW));
     }
 
     #[test]
@@ -858,7 +897,7 @@ mod test {
         start(&mut cpu);
 
         assert_eq!(cpu.a, 0b1111_1110);
-        assert!(cpu.processor_status.get_carry());
+        assert!(cpu.processor_status.contains(ProcessorStatus::CARRY));
     }
 
     #[test]
@@ -870,7 +909,7 @@ mod test {
         start(&mut cpu);
 
         assert_eq!(cpu.a, 0b1111_1110);
-        assert!(!cpu.processor_status.get_carry());
+        assert!(!cpu.processor_status.contains(ProcessorStatus::CARRY));
     }
 
     #[test]
@@ -920,9 +959,9 @@ mod test {
         cpu.bus.write_byte(0xaa, 0b0000_0000);
         start(&mut cpu);
 
-        assert!(cpu.processor_status.get_zero());
-        assert!(!cpu.processor_status.get_overflow());
-        assert!(!cpu.processor_status.get_negative());
+        assert!(cpu.processor_status.contains(ProcessorStatus::ZERO));
+        assert!(!cpu.processor_status.contains(ProcessorStatus::OVERFLOW));
+        assert!(!cpu.processor_status.contains(ProcessorStatus::NEGATIVE));
     }
 
     #[test]
@@ -933,9 +972,9 @@ mod test {
         cpu.bus.write_byte(0xaa, 0b1100_0001);
         start(&mut cpu);
 
-        assert!(!cpu.processor_status.get_zero());
-        assert!(cpu.processor_status.get_overflow());
-        assert!(cpu.processor_status.get_negative());
+        assert!(!cpu.processor_status.contains(ProcessorStatus::ZERO));
+        assert!(cpu.processor_status.contains(ProcessorStatus::OVERFLOW));
+        assert!(cpu.processor_status.contains(ProcessorStatus::NEGATIVE));
     }
 
     #[test]
@@ -973,8 +1012,11 @@ mod test {
         start(&mut cpu);
 
         assert_eq!(cpu.a, 0xc5);
-        assert_eq!(cpu.processor_status.get_zero(), false);
-        assert_eq!(cpu.processor_status.get_negative(), true);
+        assert_eq!(cpu.processor_status.contains(ProcessorStatus::ZERO), false);
+        assert_eq!(
+            cpu.processor_status.contains(ProcessorStatus::NEGATIVE),
+            true
+        );
     }
 
     #[test]
@@ -995,7 +1037,7 @@ mod test {
         cpu.program_counter = 0x8000;
 
         start(&mut cpu);
-        assert_eq!(cpu.processor_status.get_zero(), true)
+        assert_eq!(cpu.processor_status.contains(ProcessorStatus::ZERO), true)
     }
 
     #[test]
@@ -1007,7 +1049,7 @@ mod test {
         cpu.a = 0x00;
         start(&mut cpu);
         assert_eq!(cpu.x, cpu.a);
-        assert_eq!(cpu.processor_status.get_zero(), true)
+        assert_eq!(cpu.processor_status.contains(ProcessorStatus::ZERO), true)
     }
 
     #[test]
@@ -1019,7 +1061,7 @@ mod test {
         cpu.a = 0x01;
         start(&mut cpu);
         assert_eq!(cpu.x, cpu.a);
-        assert_eq!(cpu.processor_status.get_zero(), false)
+        assert_eq!(cpu.processor_status.contains(ProcessorStatus::ZERO), false)
     }
 
     #[test]

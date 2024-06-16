@@ -1,151 +1,103 @@
-#[derive(Default, Debug, Clone, PartialEq, Eq)]
-pub struct ProcesssorStatus {
-    pub(crate) inner: u8,
-}
+use std::fmt::Display;
 
-impl std::fmt::Display for ProcesssorStatus {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(
-            f,
-            "Status [{}]: Carry=[{}] Zero=[{}] interrupt=[{}] dec=[{}] break=[{}] overflow=[{}] negative=[{}]",
-            self.inner,
-            self.get_carry(),
-            self.get_zero(),
-            self.get_interrupt(),
-            self.get_decimal(),
-            self.get_break(),
-            self.get_overflow(),
-            self.get_negative()
-        )
+bitflags! {
+    #[derive(Default)]
+    pub struct ProcessorStatus: u8 {
+        const CARRY                  = 0b00000001;
+        const ZERO                   = 0b00000010;
+        const INTERRUPT_DISABLE      = 0b00000100;
+        const DECIMAL                = 0b00001000;
+        const OVERFLOW               = 0b00010000;
+        const NEGATIVE               = 0b00100000;
+        const BREAK                  = 0b01000000;
+        const BREAK2                 = 0b10000000;
     }
 }
 
-impl ProcesssorStatus {
+impl ProcessorStatus {
     pub fn new(
         carry: bool,
         zero: bool,
-        interrupt: bool,
+        interrupt_disable: bool,
         decimal: bool,
         brk: bool,
         brk2: bool,
         overflow: bool,
         negative: bool,
     ) -> Self {
-        let mut status = ProcesssorStatus::default();
+        let mut status = Self::default();
         status.set_carry(carry);
         status.set_zero(zero);
-        status.set_interrupt(interrupt);
+        status.set_interrupt_disable(interrupt_disable);
         status.set_decimal(decimal);
         status.set_break(brk);
         status.set_break2(brk2);
         status.set_overflow(overflow);
         status.set_negative(negative);
-
         status
-    }
-    /*
-    0 - Carry
-    1 - Zero
-    2 - Interrupt
-    3 - Decimal
-    4 - Break
-    5 - -
-    6 - Overflow
-    7 - Negative
-    */
-    pub fn get_carry(&self) -> bool {
-        self.inner & 0b0000_0001 == 0b0000_0001
-    }
-
-    pub fn set_carry(&mut self, carry: bool) {
-        if carry {
-            self.inner |= 0b0000_0001
-        } else {
-            self.inner &= 0b1111_1110
-        }
-    }
-
-    pub fn get_zero(&self) -> bool {
-        self.inner & 0b0000_0010 == 0b0000_0010
-    }
-
-    pub fn set_zero(&mut self, zero: bool) {
-        if zero {
-            self.inner |= 0b0000_0010
-        } else {
-            self.inner &= 0b1111_1101
-        }
-    }
-
-    pub fn get_interrupt(&self) -> bool {
-        self.inner & 0b0000_0100 == 0b0000_0100
-    }
-
-    pub fn set_interrupt(&mut self, interrupt: bool) {
-        if interrupt {
-            self.inner |= 0b0000_0100
-        } else {
-            self.inner &= 0b1111_1011
-        }
-    }
-
-    pub fn get_decimal(&self) -> bool {
-        self.inner & 0b0000_1000 == 0b0000_1000
-    }
-
-    pub fn set_decimal(&mut self, decimal: bool) {
-        if decimal {
-            self.inner |= 0b0000_1000
-        } else {
-            self.inner &= 0b1111_0111
-        }
-    }
-
-    pub fn get_break(&self) -> bool {
-        self.inner & 0b0001_0000 == 0b0001_0000
     }
 
     pub fn set_break(&mut self, brk: bool) {
         if brk {
-            self.inner |= 0b0001_0000
+            self.insert(Self::CARRY)
         } else {
-            self.inner &= 0b1110_1111
+            self.remove(Self::CARRY)
         }
-    }
-
-    pub fn get_break2(&self) -> bool {
-        self.inner & 0b0010_0000 == 0b0010_0000
     }
 
     pub fn set_break2(&mut self, brk: bool) {
         if brk {
-            self.inner |= 0b0010_0000
+            self.insert(Self::CARRY)
         } else {
-            self.inner &= 0b1101_1111
+            self.remove(Self::CARRY)
         }
     }
 
-    pub fn get_overflow(&self) -> bool {
-        self.inner & 0b0100_0000 == 0b0100_0000
-    }
-
-    pub fn set_overflow(&mut self, overflow: bool) {
-        if overflow {
-            self.inner |= 0b0100_0000
+    pub fn set_carry(&mut self, carry: bool) {
+        if carry {
+            self.insert(Self::CARRY)
         } else {
-            self.inner &= 0b1011_1111
+            self.remove(Self::CARRY)
         }
     }
 
-    pub fn get_negative(&self) -> bool {
-        self.inner & 0b1000_0000 == 0b1000_0000
+    pub fn set_zero(&mut self, zero: bool) {
+        if zero {
+            self.insert(Self::ZERO)
+        } else {
+            self.remove(Self::ZERO)
+        }
     }
 
     pub fn set_negative(&mut self, negative: bool) {
         if negative {
-            self.inner |= 0b1000_0000
+            self.insert(Self::NEGATIVE)
         } else {
-            self.inner &= 0b0111_1111
+            self.remove(Self::NEGATIVE)
+        }
+    }
+
+    pub fn set_overflow(&mut self, overflow: bool) {
+        if overflow {
+            self.insert(Self::OVERFLOW)
+        } else {
+            self.remove(Self::OVERFLOW)
+        }
+    }
+
+    pub fn set_decimal(&mut self, decimal: bool) {
+        if decimal {
+            self.insert(Self::OVERFLOW)
+        } else {
+            self.remove(Self::OVERFLOW)
+        }
+    }
+
+    pub fn set_interrupt_disable(&mut self, interrupt_disable: bool) {
+        if interrupt_disable {
+            self.insert(Self::INTERRUPT_DISABLE)
+        } else {
+            self.remove(Self::INTERRUPT_DISABLE)
         }
     }
 
@@ -154,101 +106,20 @@ impl ProcesssorStatus {
     }
 }
 
-#[cfg(test)]
-mod test {
-
-    use super::*;
-
-    #[test]
-    fn test_processer_status_carry() {
-        let mut processor_status = ProcesssorStatus::default();
-        assert_eq!(processor_status.get_carry(), false);
-
-        processor_status.set_carry(true);
-        assert_eq!(processor_status.get_carry(), true);
-
-        processor_status.set_carry(false);
-        assert_eq!(processor_status.get_carry(), false);
-    }
-
-    #[test]
-    fn test_processer_status_zero() {
-        let mut processor_status = ProcesssorStatus::default();
-        assert_eq!(processor_status.get_zero(), false);
-
-        processor_status.set_zero(true);
-        assert_eq!(processor_status.get_zero(), true);
-
-        processor_status.set_zero(false);
-        assert_eq!(processor_status.get_zero(), false);
-    }
-
-    #[test]
-    fn test_processer_status_interrupt() {
-        let mut processor_status = ProcesssorStatus::default();
-        assert_eq!(processor_status.get_interrupt(), false);
-
-        processor_status.set_interrupt(true);
-        assert_eq!(processor_status.get_interrupt(), true);
-
-        processor_status.set_interrupt(false);
-        assert_eq!(processor_status.get_interrupt(), false);
-    }
-
-    #[test]
-    fn test_processer_status_decimal() {
-        let mut processor_status = ProcesssorStatus::default();
-        assert_eq!(processor_status.get_decimal(), false);
-
-        processor_status.set_decimal(true);
-        assert_eq!(processor_status.get_decimal(), true);
-
-        processor_status.set_decimal(false);
-        assert_eq!(processor_status.get_decimal(), false);
-    }
-
-    #[test]
-    fn test_processer_status_break() {
-        let mut processor_status = ProcesssorStatus::default();
-        assert_eq!(processor_status.get_break(), false);
-
-        processor_status.set_break(true);
-        assert_eq!(processor_status.get_break(), true);
-
-        processor_status.set_break(false);
-        assert_eq!(processor_status.get_break(), false);
-    }
-
-    #[test]
-    fn test_processer_status_overflow() {
-        let mut processor_status = ProcesssorStatus::default();
-        assert_eq!(processor_status.get_overflow(), false);
-
-        processor_status.set_overflow(true);
-        assert_eq!(processor_status.get_overflow(), true);
-
-        processor_status.set_overflow(false);
-        assert_eq!(processor_status.get_overflow(), false);
-    }
-
-    #[test]
-    fn test_processer_status_negative() {
-        let mut processor_status = ProcesssorStatus::default();
-        assert_eq!(processor_status.get_negative(), false);
-
-        processor_status.set_negative(true);
-        assert_eq!(processor_status.get_negative(), true);
-
-        processor_status.set_negative(false);
-        assert_eq!(processor_status.get_negative(), false);
-    }
-
-    #[test]
-    fn test_processer_status_is_negative() {
-        let pos_int: u8 = 0b0000_0001;
-        assert_eq!(ProcesssorStatus::is_negative(pos_int), false);
-
-        let neg_int: u8 = 0b1000_0001;
-        assert_eq!(ProcesssorStatus::is_negative(neg_int), true);
+impl Display for ProcessorStatus {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+                        f,
+                        "Status [{}]: Carry=[{}] Zero=[{}] interrupt_disabled=[{}] dec=[{}] break=[{}] break2=[{}] overflow=[{}] negative=[{}]",
+                        self.bits(),
+                        self.contains(Self::CARRY),
+                        self.contains(Self::ZERO),
+                        self.contains(Self::INTERRUPT_DISABLE),
+                        self.contains(Self::DECIMAL),
+                        self.contains(Self::BREAK),
+                        self.contains(Self::BREAK2),
+                        self.contains(Self::OVERFLOW),
+                        self.contains(Self::NEGATIVE)
+        )
     }
 }
