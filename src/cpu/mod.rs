@@ -80,7 +80,7 @@ impl CPU {
             }
 
             if let Some(nmi) = self.bus.poll_nmi_status() {
-                self.interrupt(nmi)
+                self.interrupt(&nmi)
             }
 
             let cycles: u8 = match instruction.instruction_type {
