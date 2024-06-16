@@ -489,6 +489,11 @@ impl CPU {
     }
 
     fn nop(&mut self, instruction: &Instruction) -> u8 {
+        // Account for illegal instructions
+        match instruction.memory_addressing_mode {
+            MemoryAdressingMode::Implied => (),
+            _ => (_, _) = self.read_byte(&instruction.memory_addressing_mode),
+        }
         instruction.cycle
     }
 

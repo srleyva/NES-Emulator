@@ -1366,5 +1366,23 @@
         "opcode": "$FF",
         "cycles": 6,
         "+1": false
+    },
+    {
+        "name": "NOP",
+        "mode": "ZeroPage",
+        "opcode": "$4",
+        "description": "(Illegal Instruction) NOP (Zero Page)",
+        "bytes": "2",
+        "cycles": 3,
+        "+1": false
+    },
+    {
+        "name": "NOP",
+        "mode": "Absolute",
+        "opcode": "$0C",
+        "description": "(Illegal Instruction) NOP (Absolute)",
+        "bytes": "3",
+        "cycles": 3,
+        "+1": false
     }
 ]
