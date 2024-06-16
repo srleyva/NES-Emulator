@@ -2,7 +2,10 @@ mod address;
 mod registers;
 mod scroll;
 
-use crate::rom::Mirroring;
+use crate::{
+    cpu::interrupt::{Interrupt, NMI},
+    rom::Mirroring,
+};
 use address::Address;
 use registers::{Control, Mask, Status};
 use scroll::Scroll;
@@ -94,7 +97,7 @@ pub(crate) struct PPU {
     oam_data: [u8; 256],
     mirroring: Mirroring,
     buffer: u8,
-    pub(crate) nmi_interrupt: Option<usize>,
+    pub(crate) nmi_interrupt: Option<Interrupt>,
 
     // PPU Registers
     ctrl: Control,
@@ -162,7 +165,7 @@ impl PPU {
                     && self.ctrl.generate_vblank_nmi()
                     && self.status.is_in_vblank()
                 {
-                    self.nmi_interrupt = Some(1);
+                    self.nmi_interrupt = Some(NMI);
                 }
             }
             PPUAddress::Mask => self.mask.update(data.into()),

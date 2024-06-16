@@ -1,5 +1,8 @@
 pub mod instructions;
+pub mod interrupt;
 pub mod processor_status;
+
+use self::interrupt::Interrupt;
 
 use super::bus::MemoryBus;
 use instructions::{
@@ -18,7 +21,6 @@ pub struct CPU {
     y: u8,
     processor_status: ProcesssorStatus,
     pub(crate) bus: MemoryBus,
-    irq_interrupt: Option<usize>,
 }
 
 impl PartialEq for CPU {
@@ -62,7 +64,6 @@ impl CPU {
             y,
             processor_status,
             bus: rom,
-            irq_interrupt: None,
         };
         cpu
     }
@@ -78,8 +79,8 @@ impl CPU {
                 print!("{}", instruction);
             }
 
-            if let Some(_nmi) = self.bus.poll_nmi_status() {
-                self.interrupt_nmi()
+            if let Some(nmi) = self.bus.poll_nmi_status() {
+                self.interrupt(nmi)
             }
 
             let cycles: u8 = match instruction.instruction_type {
@@ -160,17 +161,17 @@ impl CPU {
         }
     }
 
-    fn interrupt_nmi(&mut self) {
+    fn interrupt(&mut self, interrupt: &Interrupt) {
         self.push_word(self.program_counter);
         let mut flag = self.processor_status.clone();
-        flag.set_break(false);
-        flag.set_break2(true);
+        flag.set_break(interrupt.flag_mask & 0b010000 == 1);
+        flag.set_break2(interrupt.flag_mask & 0b010000 == 1);
 
         self.push(flag.inner);
         self.processor_status.set_interrupt(false);
 
-        self.bus.tick(2);
-        self.program_counter = self.bus.read_word(0xfffA);
+        self.bus.tick(interrupt.cpu_cycles);
+        self.program_counter = self.bus.read_word(interrupt.vector_addr);
     }
 
     /*

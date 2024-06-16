@@ -1,3 +1,5 @@
+use crate::cpu::interrupt::Interrupt;
+
 use super::ppu::{PPUValue, PPU};
 use super::rom::Rom;
 
@@ -26,8 +28,8 @@ impl MemoryBus {
         }
     }
 
-    pub fn poll_nmi_status(&self) -> Option<usize> {
-        self.ppu.nmi_interrupt
+    pub fn poll_nmi_status(&self) -> Option<Interrupt> {
+        self.ppu.nmi_interrupt.clone()
     }
 
     pub fn read_byte(&mut self, address: u16) -> u8 {
