@@ -96,6 +96,9 @@ impl CPU {
                     _ => panic!("non-nmi interrupt sent: {:?}", nmi),
                 }
             }
+            if cfg!(debug_assertions) {
+                println!("INSTRUCTION: {:?}", instruction);
+            }
             let cycles: u8 = match instruction.instruction_type {
                 InstructionType::AND => self.and(instruction),
                 InstructionType::ADC => self.adc(instruction),
@@ -162,16 +165,16 @@ impl CPU {
                     self.nop(instruction)
                 }
             };
-            if cfg!(debug_assertions) {
-                println!("INSTRUCTION: {:?}", instruction);
-                println!("CPU: {}", self);
-            }
+
             callback(self, instruction);
             if self.processor_status.contains(ProcessorStatus::BREAK) {
                 self.interrupt(&BRK);
             }
 
             self.bus.tick(cycles);
+            if cfg!(debug_assertions) {
+                println!("CPU: {}", self);
+            }
             // if program_counter_state == self.program_counter {
             //     self.program_counter += (cycles - 1) as u16;
             // }
@@ -230,11 +233,22 @@ impl CPU {
     }
 
     fn asl(&mut self, instruction: &Instruction) -> u8 {
-        let (mut data, page_cross) = self.read_byte(&instruction.memory_addressing_mode);
-        self.processor_status.set_carry(data >> 7 == 1);
-        data <<= 1;
-        self.write_byte(&instruction.memory_addressing_mode, data);
-        self.set_negative_and_zero_process_status(data);
+        match instruction.memory_addressing_mode {
+            MemoryAdressingMode::Accumulator => {
+                self.processor_status.set_carry(self.a >> 7 == 1);
+                self.a <<= 1;
+                self.set_negative_and_zero_process_status(self.a);
+            }
+            MemoryAdressingMode::Immediate => panic!("immediate addressing not supported for lsr"),
+            _ => {
+                let (address, _page_cross) = self.get_address(&instruction.memory_addressing_mode);
+                let mut data = self.bus.read_byte(address);
+                self.processor_status.set_carry(data >> 7 == 1);
+                data <<= 1;
+                self.bus.write_byte(address, data);
+                self.set_negative_and_zero_process_status(data);
+            }
+        }
         instruction.cycle
     }
 
@@ -454,12 +468,23 @@ impl CPU {
     }
 
     fn lsr(&mut self, instruction: &Instruction) -> u8 {
-        let (address, _page_cross) = self.get_address(&instruction.memory_addressing_mode);
-        let mut data = self.bus.read_byte(address);
-        self.processor_status.set_carry(data & 0b0000_0001 == 1);
-        data >>= 1;
-        self.bus.write_byte(address, data);
-        self.set_negative_and_zero_process_status(data);
+        match instruction.memory_addressing_mode {
+            MemoryAdressingMode::Accumulator => {
+                self.processor_status.set_carry(self.a & 0b0000_0001 == 1);
+                self.a >>= 1;
+                self.set_negative_and_zero_process_status(self.a);
+            }
+            MemoryAdressingMode::Immediate => panic!("immediate addressing not supported for lsr"),
+            _ => {
+                let (address, _page_cross) = self.get_address(&instruction.memory_addressing_mode);
+                let mut data = self.bus.read_byte(address);
+                self.processor_status.set_carry(data & 0b0000_0001 == 1);
+                data >>= 1;
+                self.bus.write_byte(address, data);
+                self.set_negative_and_zero_process_status(data);
+            }
+        }
+
         instruction.cycle
     }
 
@@ -503,28 +528,63 @@ impl CPU {
     }
 
     fn rol(&mut self, instruction: &Instruction) -> u8 {
-        let (mut data, page_cross) = self.read_byte(&instruction.memory_addressing_mode);
-        let carry = self.processor_status.contains(ProcessorStatus::CARRY);
-        self.processor_status
-            .set_carry(data & 0b0100_0000 != 0b0100_0000);
-        data <<= 1;
-        if carry {
-            data |= 0b0000_0001
+        match instruction.memory_addressing_mode {
+            MemoryAdressingMode::Accumulator => {
+                let carry = self.processor_status.contains(ProcessorStatus::CARRY);
+                self.processor_status
+                    .set_carry(self.a & 0b0100_0000 != 0b0100_0000);
+                self.a <<= 1;
+                if carry {
+                    self.a |= 0b0000_0001
+                }
+                self.set_negative_and_zero_process_status(self.a);
+            }
+            MemoryAdressingMode::Immediate => panic!("immediate addressing not supported for ror"),
+            _ => {
+                let (address, _page_cross) = self.get_address(&instruction.memory_addressing_mode);
+                let mut data = self.bus.read_byte(address);
+                let carry = self.processor_status.contains(ProcessorStatus::CARRY);
+                self.processor_status
+                    .set_carry(data & 0b0100_0000 != 0b0100_0000);
+                data <<= 1;
+                if carry {
+                    data |= 0b0000_0001
+                }
+                self.bus.write_byte(address, data);
+                self.set_negative_and_zero_process_status(data);
+            }
         }
-        self.write_byte(&instruction.memory_addressing_mode, data);
+
         instruction.cycle
     }
 
     fn ror(&mut self, instruction: &Instruction) -> u8 {
-        let (mut data, page_cross) = self.read_byte(&instruction.memory_addressing_mode);
-        let carry = self.processor_status.contains(ProcessorStatus::CARRY);
-        self.processor_status
-            .set_carry(data & 0b0000_0001 == 0b0000_0001);
-        data >>= 1;
-        if carry {
-            data |= 0b1000_0000
+        match instruction.memory_addressing_mode {
+            MemoryAdressingMode::Accumulator => {
+                let carry = self.processor_status.contains(ProcessorStatus::CARRY);
+                self.processor_status
+                    .set_carry(self.a & 0b0000_0001 == 0b0000_0001);
+                self.a >>= 1;
+                if carry {
+                    self.a |= 0b1000_0000
+                }
+                self.set_negative_and_zero_process_status(self.a);
+            }
+            MemoryAdressingMode::Immediate => panic!("immediate addressing not supported for ror"),
+            _ => {
+                let (address, _page_cross) = self.get_address(&instruction.memory_addressing_mode);
+                let mut data = self.bus.read_byte(address);
+                let carry = self.processor_status.contains(ProcessorStatus::CARRY);
+                self.processor_status
+                    .set_carry(data & 0b0000_0001 == 0b0000_0001);
+                data >>= 1;
+                if carry {
+                    data |= 0b1000_0000
+                }
+                self.bus.write_byte(address, data);
+                self.set_negative_and_zero_process_status(data);
+            }
         }
-        self.write_byte(&instruction.memory_addressing_mode, data);
         instruction.cycle
     }
 
@@ -630,10 +690,6 @@ impl CPU {
                 (self.bus.read_byte(addr), page_cross)
             }
         };
-
-        if cfg!(debug_assertions) {
-            println!(" Read Data: {:#04X?} PageCross: {:?}", byte, page_cross);
-        }
 
         (byte, page_cross)
     }
@@ -791,11 +847,6 @@ impl CPU {
     }
 
     fn read_next_byte(&mut self) -> u8 {
-        println!(
-            "next byte called: {:x} -> {:x}",
-            self.program_counter,
-            self.program_counter + 1
-        );
         let byte = self.bus.read_byte(self.program_counter);
         self.program_counter += 1;
         byte
