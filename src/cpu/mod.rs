@@ -3,7 +3,10 @@ pub mod interrupt;
 pub mod processor_status;
 
 use core::panic;
-use std::fmt::Debug;
+use std::{
+    fmt::Debug,
+    ops::{BitAnd, BitOr},
+};
 
 use self::interrupt::{Interrupt, InterruptType, BRK, NMI};
 
@@ -12,19 +15,20 @@ use instructions::{
     get_instruction_from_opcode, Instruction, InstructionType, MemoryAdressingMode,
 };
 use processor_status::ProcessorStatus;
+use sdl2::libc::printf;
 
 const STACK: u16 = 0x0100;
 const OPCODE_EXIT: u8 = 0xf4;
 
 #[derive(Clone)]
 pub struct CPU {
-    program_counter: u16,
-    stack_pointer: u8,
-    a: u8,
-    x: u8,
-    y: u8,
-    processor_status: ProcessorStatus,
-    pub(crate) bus: MemoryBus,
+    pub program_counter: u16,
+    pub stack_pointer: u8,
+    pub a: u8,
+    pub x: u8,
+    pub y: u8,
+    pub processor_status: ProcessorStatus,
+    pub bus: MemoryBus,
 }
 
 impl PartialEq for CPU {
@@ -84,10 +88,7 @@ impl CPU {
     {
         loop {
             let program_counter_state = self.program_counter;
-            let instruction = get_instruction_from_opcode(self.read_next_byte());
-            if cfg!(debug_assertions) {
-                println!("{:?}", instruction);
-            }
+            let instruction = get_instruction_from_opcode(self.read_next_byte() as usize);
 
             if let Some(nmi) = self.bus.poll_nmi_status() {
                 match nmi {
@@ -95,7 +96,6 @@ impl CPU {
                     _ => panic!("non-nmi interrupt sent: {:?}", nmi),
                 }
             }
-
             let cycles: u8 = match instruction.instruction_type {
                 InstructionType::AND => self.and(instruction),
                 InstructionType::ADC => self.adc(instruction),
@@ -121,6 +121,7 @@ impl CPU {
                 InstructionType::DEX => self.dex(instruction),
                 InstructionType::DEY => self.dey(instruction),
                 InstructionType::EOR => self.eor(instruction),
+                InstructionType::ISB => self.isb(instruction),
                 InstructionType::INC => self.inc(instruction),
                 InstructionType::INX => self.inx(instruction),
                 InstructionType::INY => self.iny(instruction),
@@ -162,8 +163,8 @@ impl CPU {
                 }
             };
             if cfg!(debug_assertions) {
-                println!();
-                //println!("CPU: {}", self);
+                println!("INSTRUCTION: {:?}", instruction);
+                println!("CPU: {}", self);
             }
             callback(self, instruction);
             if self.processor_status.contains(ProcessorStatus::BREAK) {
@@ -171,9 +172,9 @@ impl CPU {
             }
 
             self.bus.tick(cycles);
-            if program_counter_state == self.program_counter {
-                self.program_counter += (cycles - 1) as u16;
-            }
+            // if program_counter_state == self.program_counter {
+            //     self.program_counter += (cycles - 1) as u16;
+            // }
         }
     }
 
@@ -385,6 +386,10 @@ impl CPU {
         instruction.cycle
     }
 
+    fn isb(&mut self, instruction: &Instruction) -> u8 {
+        todo!("{:?}", instruction)
+    }
+
     fn jmp(&mut self, instruction: &Instruction) -> u8 {
         let addr = match instruction.memory_addressing_mode {
             MemoryAdressingMode::Indirect => {
@@ -449,16 +454,16 @@ impl CPU {
     }
 
     fn lsr(&mut self, instruction: &Instruction) -> u8 {
-        let (mut data, page_cross) = self.read_byte(&instruction.memory_addressing_mode);
+        let (address, _page_cross) = self.get_address(&instruction.memory_addressing_mode);
+        let mut data = self.bus.read_byte(address);
         self.processor_status.set_carry(data & 0b0000_0001 == 1);
         data >>= 1;
-        self.write_byte(&instruction.memory_addressing_mode, data);
+        self.bus.write_byte(address, data);
         self.set_negative_and_zero_process_status(data);
         instruction.cycle
     }
 
     fn nop(&mut self, instruction: &Instruction) -> u8 {
-        self.program_counter = self.program_counter.wrapping_add(1);
         instruction.cycle
     }
 
@@ -479,7 +484,7 @@ impl CPU {
     }
 
     fn php(&mut self, instruction: &Instruction) -> u8 {
-        self.push(self.processor_status.bits());
+        self.push(self.processor_status.bitor(ProcessorStatus::BREAK).bits());
         instruction.cycle
     }
 
@@ -492,14 +497,16 @@ impl CPU {
 
     fn plp(&mut self, instruction: &Instruction) -> u8 {
         self.processor_status = ProcessorStatus::from_bits_truncate(self.pop());
-        instruction.cycle
+        self.processor_status.remove(ProcessorStatus::BREAK);
+        self.processor_status.insert(ProcessorStatus::BREAK2);
+        instruction.bytes
     }
 
     fn rol(&mut self, instruction: &Instruction) -> u8 {
         let (mut data, page_cross) = self.read_byte(&instruction.memory_addressing_mode);
         let carry = self.processor_status.contains(ProcessorStatus::CARRY);
         self.processor_status
-            .set_carry(data & 0b0100_0000 == 0b0100_0000);
+            .set_carry(data & 0b0100_0000 != 0b0100_0000);
         data <<= 1;
         if carry {
             data |= 0b0000_0001
@@ -528,6 +535,8 @@ impl CPU {
 
     fn rti(&mut self, instruction: &Instruction) -> u8 {
         self.processor_status = ProcessorStatus::from_bits_truncate(self.pop());
+        self.processor_status.remove(ProcessorStatus::BREAK);
+        self.processor_status.insert(ProcessorStatus::BREAK2);
         self.program_counter = self.pop_word();
         instruction.cycle
     }
@@ -535,6 +544,7 @@ impl CPU {
     fn sbc(&mut self, instruction: &Instruction) -> u8 {
         let (data, page_cross) = self.read_byte(&instruction.memory_addressing_mode);
         self.a = self.add(self.a, (data as i8).wrapping_neg().wrapping_sub(1) as u8);
+        self.set_negative_and_zero_process_status(self.a);
         if page_cross {
             instruction.cycle + 1
         } else {
@@ -622,7 +632,7 @@ impl CPU {
         };
 
         if cfg!(debug_assertions) {
-            print!(" Read Data: {:#04X?} PageCross: {:?}", byte, page_cross);
+            println!(" Read Data: {:#04X?} PageCross: {:?}", byte, page_cross);
         }
 
         (byte, page_cross)
@@ -630,7 +640,7 @@ impl CPU {
 
     fn write_byte(&mut self, memory_addressing_mode: &MemoryAdressingMode, byte: u8) -> bool {
         if cfg!(debug_assertions) {
-            print!(" Write Data: {:#04X?}", byte);
+            println!(" Write Data: {:#04X?}", byte);
         }
         match memory_addressing_mode {
             MemoryAdressingMode::Accumulator => {
@@ -659,9 +669,6 @@ impl CPU {
             MemoryAdressingMode::Relative => panic!("Look up not supported for relative"),
             _ => panic!("Not Supported: {:?}", memory_addressing_mode),
         };
-        if cfg!(debug_assertions) {
-            print!(" Addr: {:#04X?} PageCross: {:?}", addr, boundary_cross)
-        }
 
         (addr, boundary_cross)
     }
@@ -721,9 +728,7 @@ impl CPU {
     */
 
     fn compare(&mut self, register: u8, value: u8) {
-        if register >= value {
-            self.processor_status.set_carry(true);
-        }
+        self.processor_status.set_carry(register >= value);
         self.set_negative_and_zero_process_status(register.wrapping_sub(value))
     }
 
@@ -751,9 +756,9 @@ impl CPU {
     }
 
     fn push(&mut self, byte: u8) {
-        self.stack_pointer = self.stack_pointer.wrapping_sub(1);
         self.bus
             .write_byte((STACK as u16) + self.stack_pointer as u16, byte);
+        self.stack_pointer = self.stack_pointer.wrapping_sub(1);
     }
 
     fn push_word(&mut self, word: u16) {
@@ -764,10 +769,11 @@ impl CPU {
     }
 
     fn pop(&mut self) -> u8 {
+        self.stack_pointer = self.stack_pointer.wrapping_add(1);
+
         let byte = self
             .bus
             .read_byte((STACK as u16) + self.stack_pointer as u16);
-        self.stack_pointer = self.stack_pointer.wrapping_add(1);
         byte
     }
 
@@ -785,6 +791,11 @@ impl CPU {
     }
 
     fn read_next_byte(&mut self) -> u8 {
+        println!(
+            "next byte called: {:x} -> {:x}",
+            self.program_counter,
+            self.program_counter + 1
+        );
         let byte = self.bus.read_byte(self.program_counter);
         self.program_counter += 1;
         byte

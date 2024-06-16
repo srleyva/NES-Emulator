@@ -46,8 +46,7 @@ impl MemoryBus {
             }
             0x8000..=0xFFFF => self.read_from_rom(address),
             _ => {
-                println!("Ignoring mem access at {:x} ({})", address, address);
-                0
+                panic!("Ignoring mem access at {:x} ({})", address, address);
             }
         }
     }

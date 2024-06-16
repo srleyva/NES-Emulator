@@ -49,6 +49,7 @@ pub enum InstructionType {
     INC,
     INX,
     INY,
+    ISB,
     JMP,
     JSR,
     LDA,
@@ -126,6 +127,20 @@ impl std::fmt::Display for Instruction {
     }
 }
 
-pub fn get_instruction_from_opcode(op_code: u8) -> &'static Instruction {
-    &INSTRUCTION_SET[op_code as usize]
+pub const ILLEGAL_CODES: [Instruction; 1] = [instruction!(
+    "ISB",
+    0xff,
+    2,
+    7,
+    InstructionType::ISB,
+    MemoryAdressingMode::IndirectX,
+    false
+)];
+
+pub fn get_instruction_from_opcode(op_code: usize) -> &'static Instruction {
+    if op_code >= INSTRUCTION_SET.len() {
+        &ILLEGAL_CODES[op_code as usize - INSTRUCTION_SET.len()]
+    } else {
+        &INSTRUCTION_SET[op_code as usize]
+    }
 }

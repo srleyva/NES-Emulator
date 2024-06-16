@@ -2,15 +2,16 @@ use std::fmt::Display;
 
 bitflags! {
     #[derive(Default)]
+    // 00100100
     pub struct ProcessorStatus: u8 {
-        const CARRY                  = 0b00000001;
-        const ZERO                   = 0b00000010;
-        const INTERRUPT_DISABLE      = 0b00000100;
-        const DECIMAL                = 0b00001000;
-        const OVERFLOW               = 0b00010000;
-        const NEGATIVE               = 0b00100000;
-        const BREAK                  = 0b01000000;
-        const BREAK2                 = 0b10000000;
+        const CARRY             = 0b00000001;
+        const ZERO              = 0b00000010;
+        const INTERRUPT_DISABLE = 0b00000100;
+        const DECIMAL           = 0b00001000;
+        const BREAK             = 0b00010000;
+        const BREAK2            = 0b00100000;
+        const OVERFLOW          = 0b01000000;
+        const NEGATIVE          = 0b10000000;
     }
 }
 
@@ -39,17 +40,17 @@ impl ProcessorStatus {
 
     pub fn set_break(&mut self, brk: bool) {
         if brk {
-            self.insert(Self::CARRY)
+            self.insert(Self::BREAK)
         } else {
-            self.remove(Self::CARRY)
+            self.remove(Self::BREAK)
         }
     }
 
     pub fn set_break2(&mut self, brk: bool) {
         if brk {
-            self.insert(Self::CARRY)
+            self.insert(Self::BREAK2)
         } else {
-            self.remove(Self::CARRY)
+            self.remove(Self::BREAK2)
         }
     }
 
@@ -87,9 +88,9 @@ impl ProcessorStatus {
 
     pub fn set_decimal(&mut self, decimal: bool) {
         if decimal {
-            self.insert(Self::OVERFLOW)
+            self.insert(Self::DECIMAL)
         } else {
-            self.remove(Self::OVERFLOW)
+            self.remove(Self::DECIMAL)
         }
     }
 
@@ -110,7 +111,7 @@ impl Display for ProcessorStatus {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
                         f,
-                        "Status [{}]: Carry=[{}] Zero=[{}] interrupt_disabled=[{}] dec=[{}] break=[{}] break2=[{}] overflow=[{}] negative=[{}]",
+                        "Status [{:x}]: Carry=[{}] Zero=[{}] interrupt_disabled=[{}] dec=[{}] break=[{}] break2=[{}] overflow=[{}] negative=[{}]",
                         self.bits(),
                         self.contains(Self::CARRY),
                         self.contains(Self::ZERO),

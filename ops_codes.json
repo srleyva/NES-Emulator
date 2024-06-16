@@ -1357,5 +1357,14 @@
         "opcode": "$98",
         "cycles": 2,
         "+1": false
+    },
+    {
+        "mode": "Implied",
+        "description": "Illegal instruction",
+        "bytes": "3",
+        "name": "ISB",
+        "opcode": "$FF",
+        "cycles": 6,
+        "+1": false
     }
 ]
