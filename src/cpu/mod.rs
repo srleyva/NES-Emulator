@@ -18,6 +18,7 @@ pub struct CPU {
     y: u8,
     processor_status: ProcesssorStatus,
     pub(crate) bus: MemoryBus,
+    plus_1_cycle: bool,
 }
 
 impl PartialEq for CPU {
@@ -61,6 +62,7 @@ impl CPU {
             y,
             processor_status,
             bus: rom,
+            plus_1_cycle: false,
         };
         cpu
     }
@@ -70,11 +72,13 @@ impl CPU {
         F: FnMut(&mut CPU, &Instruction),
     {
         loop {
+            let program_counter_state = self.program_counter;
             let instruction = get_instruction_from_opcode(self.read_next_byte());
             if cfg!(debug_assertions) {
                 print!("{}", instruction);
             }
-            match instruction.instruction_type {
+
+            let cycles: u8 = match instruction.instruction_type {
                 InstructionType::AND => self.and(instruction),
                 InstructionType::ADC => self.adc(instruction),
                 InstructionType::ASL => self.asl(instruction),
@@ -87,6 +91,7 @@ impl CPU {
                 InstructionType::BPL => self.bpl(instruction),
                 InstructionType::BRK => {
                     self.processor_status.set_break(true);
+                    instruction.cycle
                 }
                 InstructionType::BVC => self.bvc(instruction),
                 InstructionType::BVS => self.bvs(instruction),
@@ -134,7 +139,7 @@ impl CPU {
                 InstructionType::TAY => self.tay(instruction),
                 InstructionType::TYA => self.tya(instruction),
                 InstructionType::NotImplemented => panic!("Not implemented! {}", instruction),
-            }
+            };
             if cfg!(debug_assertions) {
                 println!();
                 println!("CPU: {}", self);
@@ -143,6 +148,11 @@ impl CPU {
             if self.processor_status.get_break() {
                 return;
             }
+
+            self.bus.tick(instruction.cycle);
+            if program_counter_state == self.program_counter {
+                self.program_counter += (instruction.cycle - 1) as u16;
+            }
         }
     }
 
@@ -150,139 +160,183 @@ impl CPU {
     Instructions
     */
 
-    fn adc(&mut self, instruction: &Instruction) {
-        let data = self.read_byte(&instruction.memory_addressing_mode);
+    fn adc(&mut self, instruction: &Instruction) -> u8 {
+        let (data, page_cross) = self.read_byte(&instruction.memory_addressing_mode);
         self.a = self.add(self.a, data);
         self.set_negative_and_zero_process_status(self.a);
+        if page_cross {
+            instruction.cycle + 1
+        } else {
+            instruction.cycle
+        }
     }
 
-    fn and(&mut self, instruction: &Instruction) {
-        let data = self.read_byte(&instruction.memory_addressing_mode);
+    fn and(&mut self, instruction: &Instruction) -> u8 {
+        let (data, page_cross) = self.read_byte(&instruction.memory_addressing_mode);
 
         self.a &= data;
-        self.set_negative_and_zero_process_status(self.a)
+        self.set_negative_and_zero_process_status(self.a);
+
+        if page_cross {
+            instruction.cycle + 1
+        } else {
+            instruction.cycle
+        }
     }
 
-    fn asl(&mut self, instruction: &Instruction) {
-        let mut data = self.read_byte(&instruction.memory_addressing_mode);
+    fn asl(&mut self, instruction: &Instruction) -> u8 {
+        let (mut data, page_cross) = self.read_byte(&instruction.memory_addressing_mode);
         self.processor_status.set_carry(data >> 7 == 1);
         data <<= 1;
         self.write_byte(&instruction.memory_addressing_mode, data);
         self.set_negative_and_zero_process_status(data);
+        instruction.cycle
     }
 
-    fn bcc(&mut self, _instruction: &Instruction) {
+    fn bcc(&mut self, instruction: &Instruction) -> u8 {
         self.branch(!self.processor_status.get_carry());
+        instruction.cycle
     }
 
-    fn bcs(&mut self, _instruction: &Instruction) {
+    fn bcs(&mut self, instruction: &Instruction) -> u8 {
         self.branch(self.processor_status.get_carry());
+        instruction.cycle
     }
 
-    fn beq(&mut self, _instruction: &Instruction) {
+    fn beq(&mut self, instruction: &Instruction) -> u8 {
         self.branch(self.processor_status.get_zero());
+        instruction.cycle
     }
 
-    fn bmi(&mut self, _instruction: &Instruction) {
+    fn bmi(&mut self, instruction: &Instruction) -> u8 {
         self.branch(self.processor_status.get_negative());
+        instruction.cycle
     }
 
-    fn bne(&mut self, _instruction: &Instruction) {
-        self.branch(!self.processor_status.get_zero())
+    fn bne(&mut self, instruction: &Instruction) -> u8 {
+        self.branch(!self.processor_status.get_zero());
+        instruction.cycle
     }
 
-    fn bpl(&mut self, _instruction: &Instruction) {
-        self.branch(!self.processor_status.get_negative())
+    fn bpl(&mut self, instruction: &Instruction) -> u8 {
+        self.branch(!self.processor_status.get_negative());
+        instruction.cycle
     }
 
-    fn bvc(&mut self, _instruction: &Instruction) {
-        self.branch(!self.processor_status.get_overflow())
+    fn bvc(&mut self, instruction: &Instruction) -> u8 {
+        self.branch(!self.processor_status.get_overflow());
+        instruction.cycle
     }
 
-    fn bvs(&mut self, _instruction: &Instruction) {
-        self.branch(self.processor_status.get_overflow())
+    fn bvs(&mut self, instruction: &Instruction) -> u8 {
+        self.branch(self.processor_status.get_overflow());
+        instruction.cycle
     }
 
-    fn bit(&mut self, instruction: &Instruction) {
-        let data = self.read_byte(&instruction.memory_addressing_mode);
+    fn bit(&mut self, instruction: &Instruction) -> u8 {
+        let (data, page_cross) = self.read_byte(&instruction.memory_addressing_mode);
         self.processor_status.set_zero(data & self.a == 0);
         self.processor_status.set_negative(data & 0b10000000 > 0);
         self.processor_status.set_overflow(data & 0b01000000 > 0);
+        instruction.cycle
     }
 
-    fn clc(&mut self, _instruction: &Instruction) {
+    fn clc(&mut self, instruction: &Instruction) -> u8 {
         self.processor_status.set_carry(false);
+        instruction.cycle
     }
 
-    fn cld(&mut self, _instruction: &Instruction) {
+    fn cld(&mut self, instruction: &Instruction) -> u8 {
         self.processor_status.set_decimal(false);
+        instruction.cycle
     }
 
-    fn cli(&mut self, _instruction: &Instruction) {
+    fn cli(&mut self, instruction: &Instruction) -> u8 {
         self.processor_status.set_interrupt(false);
+        instruction.cycle
     }
 
-    fn clv(&mut self, _instruction: &Instruction) {
+    fn clv(&mut self, instruction: &Instruction) -> u8 {
         self.processor_status.set_overflow(false);
+        instruction.cycle
     }
 
-    fn cmp(&mut self, instruction: &Instruction) {
-        let data = self.read_byte(&instruction.memory_addressing_mode);
+    fn cmp(&mut self, instruction: &Instruction) -> u8 {
+        let (data, page_cross) = self.read_byte(&instruction.memory_addressing_mode);
         self.compare(self.a, data);
+        if page_cross {
+            instruction.cycle + 1
+        } else {
+            instruction.cycle
+        }
     }
 
-    fn cpx(&mut self, instruction: &Instruction) {
-        let data = self.read_byte(&instruction.memory_addressing_mode);
+    fn cpx(&mut self, instruction: &Instruction) -> u8 {
+        let (data, page_cross) = self.read_byte(&instruction.memory_addressing_mode);
         self.compare(self.x, data);
+        instruction.cycle
     }
 
-    fn cpy(&mut self, instruction: &Instruction) {
-        let data = self.read_byte(&instruction.memory_addressing_mode);
+    fn cpy(&mut self, instruction: &Instruction) -> u8 {
+        let (data, page_cross) = self.read_byte(&instruction.memory_addressing_mode);
         self.compare(self.y, data);
+        instruction.cycle
     }
 
-    fn dec(&mut self, instruction: &Instruction) {
-        let addr = self.get_address(&instruction.memory_addressing_mode);
+    fn dec(&mut self, instruction: &Instruction) -> u8 {
+        let (addr, page_cross) = self.get_address(&instruction.memory_addressing_mode);
         let value = self.bus.read_byte(addr);
         let new_value = value.wrapping_sub(1);
         self.bus.write_byte(addr, new_value);
-        self.set_negative_and_zero_process_status(new_value)
+        self.set_negative_and_zero_process_status(new_value);
+        instruction.cycle
     }
 
-    fn dex(&mut self, _instruction: &Instruction) {
+    fn dex(&mut self, instruction: &Instruction) -> u8 {
         self.x = self.x.wrapping_sub(1);
         self.set_negative_and_zero_process_status(self.x);
+        instruction.cycle
     }
 
-    fn dey(&mut self, _instruction: &Instruction) {
+    fn dey(&mut self, instruction: &Instruction) -> u8 {
         self.y = self.y.wrapping_sub(1);
-        self.set_negative_and_zero_process_status(self.y)
+        self.set_negative_and_zero_process_status(self.y);
+        instruction.cycle
     }
 
-    fn eor(&mut self, instruction: &Instruction) {
-        self.a ^= self.read_byte(&instruction.memory_addressing_mode);
+    fn eor(&mut self, instruction: &Instruction) -> u8 {
+        let (a, page_cross) = self.read_byte(&instruction.memory_addressing_mode);
+        self.a ^= a;
         self.set_negative_and_zero_process_status(self.a);
+        if page_cross {
+            instruction.cycle + 1
+        } else {
+            instruction.cycle
+        }
     }
 
-    fn inc(&mut self, instruction: &Instruction) {
-        let addr = self.get_address(&instruction.memory_addressing_mode);
+    fn inc(&mut self, instruction: &Instruction) -> u8 {
+        let (addr, page_cross) = self.get_address(&instruction.memory_addressing_mode);
         let value = self.bus.read_byte(addr);
         let new_value = value.wrapping_add(1);
         self.bus.write_byte(addr, new_value);
-        self.set_negative_and_zero_process_status(new_value)
+        self.set_negative_and_zero_process_status(new_value);
+        instruction.cycle
     }
 
-    fn inx(&mut self, _instruction: &Instruction) {
+    fn inx(&mut self, instruction: &Instruction) -> u8 {
         self.x = self.x.wrapping_add(1);
         self.set_negative_and_zero_process_status(self.x);
+        instruction.cycle
     }
 
-    fn iny(&mut self, _instruction: &Instruction) {
+    fn iny(&mut self, instruction: &Instruction) -> u8 {
         self.y = self.y.wrapping_add(1);
         self.set_negative_and_zero_process_status(self.y);
+        instruction.cycle
     }
 
-    fn jmp(&mut self, instruction: &Instruction) {
+    fn jmp(&mut self, instruction: &Instruction) -> u8 {
         let addr = match instruction.memory_addressing_mode {
             MemoryAdressingMode::Indirect => {
                 /*
@@ -306,70 +360,93 @@ impl CPU {
             _ => panic!("Not support for jmp"),
         };
         self.program_counter = addr;
+        instruction.cycle
     }
 
-    fn jsr(&mut self, instruction: &Instruction) {
+    fn jsr(&mut self, instruction: &Instruction) -> u8 {
         // so that the pc is incremented appropratiely
-        let addr = self.get_address(&instruction.memory_addressing_mode);
+        let (addr, page_cross) = self.get_address(&instruction.memory_addressing_mode);
 
         let return_point = self.program_counter - 1;
         self.push_word(return_point);
 
         self.program_counter = addr;
+        instruction.cycle
     }
 
-    fn lda(&mut self, instruction: &Instruction) {
-        self.a = self.read_byte(&instruction.memory_addressing_mode);
+    fn lda(&mut self, instruction: &Instruction) -> u8 {
+        let (a, page_cross) = self.read_byte(&instruction.memory_addressing_mode);
+        self.a = a;
         self.set_negative_and_zero_process_status(self.a);
+        if page_cross {
+            instruction.cycle + 1
+        } else {
+            instruction.cycle
+        }
     }
 
-    fn ldx(&mut self, instruction: &Instruction) {
-        self.x = self.read_byte(&instruction.memory_addressing_mode);
+    fn ldx(&mut self, instruction: &Instruction) -> u8 {
+        let (x, page_cross) = self.read_byte(&instruction.memory_addressing_mode);
+        self.x = x;
         self.set_negative_and_zero_process_status(self.x);
+        instruction.cycle
     }
 
-    fn ldy(&mut self, instruction: &Instruction) {
-        self.y = self.read_byte(&instruction.memory_addressing_mode);
+    fn ldy(&mut self, instruction: &Instruction) -> u8 {
+        let (y, page_cross) = self.read_byte(&instruction.memory_addressing_mode);
+        self.y = y;
         self.set_negative_and_zero_process_status(self.y);
+        instruction.cycle
     }
 
-    fn lsr(&mut self, instruction: &Instruction) {
-        let mut data = self.read_byte(&instruction.memory_addressing_mode);
+    fn lsr(&mut self, instruction: &Instruction) -> u8 {
+        let (mut data, page_cross) = self.read_byte(&instruction.memory_addressing_mode);
         self.processor_status.set_carry(data & 0b0000_0001 == 1);
         data >>= 1;
         self.write_byte(&instruction.memory_addressing_mode, data);
         self.set_negative_and_zero_process_status(data);
+        instruction.cycle
     }
 
-    fn nop(&mut self, _instruction: &Instruction) {
+    fn nop(&mut self, instruction: &Instruction) -> u8 {
         self.program_counter = self.program_counter.wrapping_add(1);
+        instruction.cycle
     }
 
-    fn ora(&mut self, instruction: &Instruction) {
-        let data = self.read_byte(&instruction.memory_addressing_mode);
+    fn ora(&mut self, instruction: &Instruction) -> u8 {
+        let (data, page_cross) = self.read_byte(&instruction.memory_addressing_mode);
         self.a |= data;
         self.set_negative_and_zero_process_status(self.a);
+        if page_cross {
+            instruction.cycle + 1
+        } else {
+            instruction.cycle
+        }
     }
 
-    fn pha(&mut self, _instruction: &Instruction) {
+    fn pha(&mut self, instruction: &Instruction) -> u8 {
         self.push(self.a);
+        instruction.cycle
     }
 
-    fn php(&mut self, _instruction: &Instruction) {
+    fn php(&mut self, instruction: &Instruction) -> u8 {
         self.push(self.processor_status.inner);
+        instruction.cycle
     }
 
-    fn pla(&mut self, instruction: &Instruction) {
+    fn pla(&mut self, instruction: &Instruction) -> u8 {
         let data = self.pop();
-        self.write_byte(&instruction.memory_addressing_mode, data)
+        let page_cross = self.write_byte(&instruction.memory_addressing_mode, data);
+        todo!()
     }
 
-    fn plp(&mut self, _instruction: &Instruction) {
+    fn plp(&mut self, instruction: &Instruction) -> u8 {
         self.processor_status.inner = self.pop();
+        instruction.cycle
     }
 
-    fn rol(&mut self, instruction: &Instruction) {
-        let mut data = self.read_byte(&instruction.memory_addressing_mode);
+    fn rol(&mut self, instruction: &Instruction) -> u8 {
+        let (mut data, page_cross) = self.read_byte(&instruction.memory_addressing_mode);
         let carry = self.processor_status.get_carry();
         self.processor_status
             .set_carry(data & 0b0100_0000 == 0b0100_0000);
@@ -378,10 +455,11 @@ impl CPU {
             data |= 0b0000_0001
         }
         self.write_byte(&instruction.memory_addressing_mode, data);
+        instruction.cycle
     }
 
-    fn ror(&mut self, instruction: &Instruction) {
-        let mut data = self.read_byte(&instruction.memory_addressing_mode);
+    fn ror(&mut self, instruction: &Instruction) -> u8 {
+        let (mut data, page_cross) = self.read_byte(&instruction.memory_addressing_mode);
         let carry = self.processor_status.get_carry();
         self.processor_status
             .set_carry(data & 0b0000_0001 == 0b0000_0001);
@@ -390,114 +468,136 @@ impl CPU {
             data |= 0b1000_0000
         }
         self.write_byte(&instruction.memory_addressing_mode, data);
+        instruction.cycle
     }
 
-    fn rts(&mut self, _instruction: &Instruction) {
+    fn rts(&mut self, instruction: &Instruction) -> u8 {
         self.program_counter = self.pop_word() + 1;
+        instruction.cycle
     }
 
-    fn rti(&mut self, _instruction: &Instruction) {
+    fn rti(&mut self, instruction: &Instruction) -> u8 {
         self.processor_status.inner = self.pop();
         self.program_counter = self.pop_word();
+        instruction.cycle
     }
 
-    fn sbc(&mut self, instruction: &Instruction) {
-        let data = self.read_byte(&instruction.memory_addressing_mode);
-        self.a = self.add(self.a, (data as i8).wrapping_neg().wrapping_sub(1) as u8)
+    fn sbc(&mut self, instruction: &Instruction) -> u8 {
+        let (data, page_cross) = self.read_byte(&instruction.memory_addressing_mode);
+        self.a = self.add(self.a, (data as i8).wrapping_neg().wrapping_sub(1) as u8);
+        if page_cross {
+            instruction.cycle + 1
+        } else {
+            instruction.cycle
+        }
     }
 
-    fn sec(&mut self, _instruction: &Instruction) {
+    fn sec(&mut self, instruction: &Instruction) -> u8 {
         self.processor_status.set_carry(true);
+        instruction.cycle
     }
 
-    fn sed(&mut self, _instruction: &Instruction) {
+    fn sed(&mut self, instruction: &Instruction) -> u8 {
         self.processor_status.set_decimal(true);
+        instruction.cycle
     }
 
-    fn sei(&mut self, _instruction: &Instruction) {
+    fn sei(&mut self, instruction: &Instruction) -> u8 {
         self.processor_status.set_interrupt(true);
+        instruction.cycle
     }
 
-    fn sta(&mut self, instruction: &Instruction) {
+    fn sta(&mut self, instruction: &Instruction) -> u8 {
         self.write_byte(&instruction.memory_addressing_mode, self.a);
+        instruction.cycle
     }
 
-    fn stx(&mut self, instruction: &Instruction) {
+    fn stx(&mut self, instruction: &Instruction) -> u8 {
         self.write_byte(&instruction.memory_addressing_mode, self.x);
+        instruction.cycle
     }
 
-    fn sty(&mut self, instruction: &Instruction) {
+    fn sty(&mut self, instruction: &Instruction) -> u8 {
         self.write_byte(&instruction.memory_addressing_mode, self.y);
+        instruction.cycle
     }
 
-    fn tax(&mut self, _instruction: &Instruction) {
+    fn tax(&mut self, instruction: &Instruction) -> u8 {
         self.x = self.a;
         self.set_negative_and_zero_process_status(self.x);
+        instruction.cycle
     }
 
-    fn tay(&mut self, _instruction: &Instruction) {
+    fn tay(&mut self, instruction: &Instruction) -> u8 {
         self.y = self.a;
         self.set_negative_and_zero_process_status(self.y);
+        instruction.cycle
     }
 
-    fn tya(&mut self, _instruction: &Instruction) {
+    fn tya(&mut self, instruction: &Instruction) -> u8 {
         self.a = self.y;
         self.set_negative_and_zero_process_status(self.a);
+        instruction.cycle
     }
 
-    fn txs(&mut self, _instruction: &Instruction) {
+    fn txs(&mut self, instruction: &Instruction) -> u8 {
         self.stack_pointer = self.x;
+        instruction.cycle
     }
 
-    fn txa(&mut self, _instruction: &Instruction) {
+    fn txa(&mut self, instruction: &Instruction) -> u8 {
         self.a = self.x;
         self.set_negative_and_zero_process_status(self.a);
+        instruction.cycle
     }
 
-    fn tsx(&mut self, _instruction: &Instruction) {
+    fn tsx(&mut self, instruction: &Instruction) -> u8 {
         self.x = self.stack_pointer;
-        self.set_negative_and_zero_process_status(self.x)
+        self.set_negative_and_zero_process_status(self.x);
+        instruction.cycle
     }
 
     /*
     Addressing
     */
 
-    fn read_byte(&mut self, memory_addressing_mode: &MemoryAdressingMode) -> u8 {
-        let byte = match memory_addressing_mode {
-            MemoryAdressingMode::Accumulator => self.a,
-            MemoryAdressingMode::Immediate => self.read_next_byte(),
+    fn read_byte(&mut self, memory_addressing_mode: &MemoryAdressingMode) -> (u8, bool) {
+        let (byte, page_cross) = match memory_addressing_mode {
+            MemoryAdressingMode::Accumulator => (self.a, false),
+            MemoryAdressingMode::Immediate => (self.read_next_byte(), false),
             _ => {
-                let addr = self.get_address(memory_addressing_mode);
-                self.bus.read_byte(addr)
+                let (addr, page_cross) = self.get_address(memory_addressing_mode);
+                (self.bus.read_byte(addr), page_cross)
             }
         };
 
         if cfg!(debug_assertions) {
-            print!(" Read Data: {:#04X?}", byte);
+            print!(" Read Data: {:#04X?} PageCross: {:?}", byte, page_cross);
         }
 
-        byte
+        (byte, page_cross)
     }
 
-    fn write_byte(&mut self, memory_addressing_mode: &MemoryAdressingMode, byte: u8) {
+    fn write_byte(&mut self, memory_addressing_mode: &MemoryAdressingMode, byte: u8) -> bool {
         if cfg!(debug_assertions) {
             print!(" Write Data: {:#04X?}", byte);
         }
         match memory_addressing_mode {
             MemoryAdressingMode::Accumulator => {
                 self.a = byte;
-                self.set_negative_and_zero_process_status(self.a)
+                self.set_negative_and_zero_process_status(self.a);
+                false
             }
             _ => {
-                let addr = self.get_address(memory_addressing_mode);
+                let (addr, page_cross) = self.get_address(memory_addressing_mode);
                 self.bus.write_byte(addr, byte);
+                page_cross
             }
         }
     }
 
-    fn get_address(&mut self, memory_addressing_mode: &MemoryAdressingMode) -> u16 {
-        let addr = match memory_addressing_mode {
+    fn get_address(&mut self, memory_addressing_mode: &MemoryAdressingMode) -> (u16, bool) {
+        let (addr, boundary_cross) = match memory_addressing_mode {
             MemoryAdressingMode::Absolute => self.absolute_address(),
             MemoryAdressingMode::AbsoluteX => self.absolute_x_address(),
             MemoryAdressingMode::AbsoluteY => self.absolute_y_address(),
@@ -510,50 +610,60 @@ impl CPU {
             _ => panic!("Not Supported"),
         };
         if cfg!(debug_assertions) {
-            print!(" Addr: {:#04X?}", addr)
+            print!(" Addr: {:#04X?} PageCross: {:?}", addr, boundary_cross)
         }
 
-        addr
+        (addr, boundary_cross)
     }
 
-    fn absolute_address(&mut self) -> u16 {
-        self.read_next_word()
+    fn absolute_address(&mut self) -> (u16, bool) {
+        (self.read_next_word(), false)
     }
 
-    fn absolute_x_address(&mut self) -> u16 {
-        self.absolute_address().wrapping_add(self.x as u16)
+    fn absolute_x_address(&mut self) -> (u16, bool) {
+        let (base_addr, _) = self.absolute_address();
+        let addr = base_addr.wrapping_add(self.x as u16);
+        (addr as u16, addr & 0x00FF != base_addr & 0x00FF)
     }
 
-    fn absolute_y_address(&mut self) -> u16 {
-        self.read_next_word().wrapping_add(self.y as u16)
+    fn absolute_y_address(&mut self) -> (u16, bool) {
+        let base_addr = self.read_next_word();
+        let addr = base_addr.wrapping_add(self.y as u16);
+        (addr as u16, addr & 0x00FF != base_addr & 0x00FF)
     }
 
-    fn zero_page_address(&mut self) -> u16 {
-        self.read_next_byte() as u16
+    fn zero_page_address(&mut self) -> (u16, bool) {
+        (self.read_next_byte() as u16, false)
     }
 
-    fn zero_page_x_address(&mut self) -> u16 {
-        self.read_next_byte().wrapping_add(self.x) as u16
+    fn zero_page_x_address(&mut self) -> (u16, bool) {
+        let base_addr = self.read_next_byte();
+        let addr = base_addr.wrapping_add(self.x);
+        (addr as u16, addr & 0x00FF != base_addr & 0x00FF)
     }
 
-    fn zero_page_y_address(&mut self) -> u16 {
-        self.read_next_byte().wrapping_add(self.y) as u16
+    fn zero_page_y_address(&mut self) -> (u16, bool) {
+        let base_addr = self.read_next_byte();
+        let addr = base_addr.wrapping_add(self.y);
+        (addr as u16, addr & 0x00FF != base_addr & 0x00FF)
     }
 
-    fn indirect_x_address(&mut self) -> u16 {
+    fn indirect_x_address(&mut self) -> (u16, bool) {
         let base = self.read_next_byte();
         let ptr: u8 = (base as u8).wrapping_add(self.x);
         let lo = self.bus.read_byte(ptr as u16);
         let hi = self.bus.read_byte(ptr.wrapping_add(1) as u16);
-        (hi as u16) << 8 | (lo as u16)
+        ((hi as u16) << 8 | (lo as u16), false)
     }
 
-    fn indirect_y_address(&mut self) -> u16 {
+    fn indirect_y_address(&mut self) -> (u16, bool) {
         let base = self.read_next_byte();
         let lo = self.bus.read_byte(base as u16);
         let hi = self.bus.read_byte((base as u8).wrapping_add(1) as u16);
         let deref_base = (hi as u16) << 8 | (lo as u16);
-        deref_base.wrapping_add(self.y as u16)
+        let addr = deref_base.wrapping_add(self.y as u16);
+        let page_boundary_crossed = deref_base & 0xFF00 != (addr & 0xFF00);
+        return (addr, page_boundary_crossed);
     }
 
     /*

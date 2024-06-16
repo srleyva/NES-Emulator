@@ -6,6 +6,7 @@ pub struct MemoryBus {
     memory: [u8; 2048],
     prg_rom: Vec<u8>,
     ppu: PPU,
+    cycles: usize,
 }
 
 const RAM: u16 = 0x0000;
@@ -21,6 +22,7 @@ impl MemoryBus {
             memory: [0; 2048],
             prg_rom: rom.prg_rom,
             ppu,
+            cycles: 0,
         }
     }
 
@@ -78,6 +80,11 @@ impl MemoryBus {
             address %= 0x4000;
         }
         self.prg_rom[address as usize]
+    }
+
+    pub fn tick(&mut self, cycles: u8) {
+        self.cycles += cycles as usize;
+        self.ppu.tick(cycles * 3);
     }
 }
 

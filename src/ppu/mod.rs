@@ -96,20 +96,15 @@ pub(crate) struct PPU {
     buffer: u8,
 
     // PPU Registers
-    // 0x2000
     ctrl: Control,
-    // 0x2001
     mask: Mask,
-    // 0x2002
     status: Status,
-    // 0x2005
     scroll: Scroll,
-    // 0x2006
     address: Address,
-    // 0x2007
-    // DATA
-    // 0x4014
-    // OAM DMA
+
+    // screen
+    scanline: u16,
+    cycles: usize,
 }
 
 impl PPU {
@@ -127,6 +122,8 @@ impl PPU {
             mask: Mask::default(),
             scroll: Scroll::default(),
             buffer: 0,
+            scanline: 0,
+            cycles: 0,
         }
     }
 
@@ -227,5 +224,27 @@ impl PPU {
             (Mirroring::Horizontal, 3) => vram_index - 0x800,
             _ => vram_index,
         }
+    }
+
+    pub fn tick(&mut self, cycles: u8) -> bool {
+        self.cycles += cycles as usize;
+        if self.cycles >= 341 {
+            self.cycles = self.cycles - 341;
+            self.scanline += 1;
+
+            if self.scanline == 241 {
+                if self.ctrl.generate_vblank_nmi() {
+                    self.status.set_vblank_status(true);
+                    todo!("Should trigger NMI interrupt")
+                }
+            }
+
+            if self.scanline >= 262 {
+                self.scanline = 0;
+                self.status.reset_vblank_status();
+                return true;
+            }
+        }
+        return false;
     }
 }
