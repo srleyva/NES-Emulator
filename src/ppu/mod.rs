@@ -3,11 +3,7 @@ mod registers;
 pub mod render;
 mod scroll;
 
-use crate::{
-    cpu::interrupt::{Interrupt, InterruptType, NMI},
-    ppu::render::SYSTEM_PALLETE,
-    rom::Mirroring,
-};
+use crate::{cpu::interrupt::InterruptType, ppu::render::SYSTEM_PALLETE, rom::Mirroring};
 use address::Address;
 use registers::{Control, Mask, Status};
 use scroll::Scroll;
@@ -251,13 +247,13 @@ impl PPU {
         }
     }
 
-    fn write_data(&mut self, data: PPUValue) {
+    fn write_data(&mut self, _data: PPUValue) {
         let address: PPUAddress = self.address.get().into();
         self.address.increment(self.ctrl.vram_addr_increment());
 
         match address {
-            PPUAddress::CHRROM(addr) => {}
-            PPUAddress::RAM(addr) => {}
+            PPUAddress::CHRROM(_addr) => {}
+            PPUAddress::RAM(_addr) => {}
             _ => panic!("Write on {:?} not supported", address),
         }
     }

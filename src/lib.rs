@@ -10,7 +10,7 @@ extern crate bitflags;
 
 use bus::MemoryBus;
 use cpu::{processor_status::ProcessorStatus, CPU};
-use rand::Rng;
+
 use rom::Rom;
 use sdl2::{event::Event, keyboard::Keycode, pixels::Color, pixels::PixelFormatEnum, EventPump};
 
@@ -101,11 +101,11 @@ pub fn start_game_from_rom(rom: Rom) {
         .unwrap();
 
     let mut canvas = window.into_canvas().present_vsync().build().unwrap();
-    let mut event_pump = sdl_context.event_pump().unwrap();
+    let _event_pump = sdl_context.event_pump().unwrap();
     canvas.set_scale(10.0, 10.0).unwrap();
 
     let creator = canvas.texture_creator();
-    let mut texture = creator
+    let _texture = creator
         .create_texture_target(PixelFormatEnum::RGB24, 32, 32)
         .unwrap();
 
@@ -119,10 +119,10 @@ pub fn start_game_from_rom(rom: Rom) {
         ProcessorStatus::default(),
     );
 
-    let mut screen_state = [0_u8; 32 * 3 * 32];
-    let mut rng = rand::thread_rng();
+    let _screen_state = [0_u8; 32 * 3 * 32];
+    let _rng = rand::thread_rng();
 
-    cpu.start_with_callback(move |cpu, _instruction| {
+    cpu.start_with_callback(move |_cpu, _instruction| {
         // handle_user_input(cpu, &mut event_pump);
 
         // cpu.bus.write_byte(0xfe, rng.gen_range(1..16));

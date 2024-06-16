@@ -1,19 +1,14 @@
 use std::{
-    collections::{vec_deque, VecDeque},
-    fs::{self, File},
+    collections::VecDeque,
+    fs::File,
     io::{BufRead, BufReader},
     ops::Deref,
-    time::Duration,
 };
 
 use nes::{
     bus::MemoryBus,
     cpu::{
-        instructions::{
-            get_instruction_from_opcode,
-            instruction_set::{self, INSTRUCTION_SET},
-            Instruction,
-        },
+        instructions::{get_instruction_from_opcode, Instruction},
         processor_status::ProcessorStatus,
         CPU,
     },
@@ -130,13 +125,13 @@ impl CPURecorder {
 fn test_rom() -> MemoryBus {
     let test_rom =
         Rom::from_path("./tests/nestest.nes".to_owned()).expect("could not open the rom");
-    let mut bus = MemoryBus::new(test_rom);
+    let bus = MemoryBus::new(test_rom);
     bus
 }
 
 #[test]
 fn test_cpu() {
-    let mut bus = test_rom();
+    let bus = test_rom();
     let mut cpu = CPU::new_with_state(
         bus.clone(),
         0xC000,

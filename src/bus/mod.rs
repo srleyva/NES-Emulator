@@ -1,6 +1,6 @@
 use crate::cpu::interrupt::{
-    Interrupt, InterruptType, IRQ_BRK_VECTOR, IRQ_BRK_VECTOR_END, NMI_VECTOR, NMI_VECTOR_END,
-    RESET_VECTOR, RESET_VECTOR_END,
+    InterruptType, IRQ_BRK_VECTOR, IRQ_BRK_VECTOR_END, NMI_VECTOR, NMI_VECTOR_END, RESET_VECTOR,
+    RESET_VECTOR_END,
 };
 
 use super::ppu::{PPUValue, PPU};

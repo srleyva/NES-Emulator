@@ -3,10 +3,7 @@ pub mod interrupt;
 pub mod processor_status;
 
 use core::panic;
-use std::{
-    fmt::Debug,
-    ops::{BitAnd, BitOr},
-};
+use std::{fmt::Debug, ops::BitOr};
 
 use self::interrupt::{Interrupt, InterruptType, BRK, NMI};
 
@@ -15,7 +12,7 @@ use instructions::{
     get_instruction_from_opcode, Instruction, InstructionType, MemoryAdressingMode,
 };
 use processor_status::ProcessorStatus;
-use sdl2::libc::printf;
+
 
 const STACK: u16 = 0x0100;
 const OPCODE_EXIT: u8 = 0xf4;
@@ -175,9 +172,9 @@ impl CPU {
             if cfg!(debug_assertions) {
                 println!("CPU: {}", self);
             }
-            // if program_counter_state == self.program_counter {
-            //     self.program_counter += (cycles - 1) as u16;
-            // }
+            if program_counter_state == self.program_counter {
+                self.program_counter += (cycles - 1) as u16;
+            }
         }
     }
 
@@ -293,7 +290,7 @@ impl CPU {
     }
 
     fn bit(&mut self, instruction: &Instruction) -> u8 {
-        let (data, page_cross) = self.read_byte(&instruction.memory_addressing_mode);
+        let (data, _page_cross) = self.read_byte(&instruction.memory_addressing_mode);
         self.processor_status.set_zero(data & self.a == 0);
         self.processor_status.set_negative(data & 0b10000000 > 0);
         self.processor_status.set_overflow(data & 0b01000000 > 0);
@@ -336,19 +333,19 @@ impl CPU {
     }
 
     fn cpx(&mut self, instruction: &Instruction) -> u8 {
-        let (data, page_cross) = self.read_byte(&instruction.memory_addressing_mode);
+        let (data, _page_cross) = self.read_byte(&instruction.memory_addressing_mode);
         self.compare(self.x, data);
         instruction.cycle
     }
 
     fn cpy(&mut self, instruction: &Instruction) -> u8 {
-        let (data, page_cross) = self.read_byte(&instruction.memory_addressing_mode);
+        let (data, _page_cross) = self.read_byte(&instruction.memory_addressing_mode);
         self.compare(self.y, data);
         instruction.cycle
     }
 
     fn dec(&mut self, instruction: &Instruction) -> u8 {
-        let (addr, page_cross) = self.get_address(&instruction.memory_addressing_mode);
+        let (addr, _page_cross) = self.get_address(&instruction.memory_addressing_mode);
         let value = self.bus.read_byte(addr);
         let new_value = value.wrapping_sub(1);
         self.bus.write_byte(addr, new_value);
@@ -380,7 +377,7 @@ impl CPU {
     }
 
     fn inc(&mut self, instruction: &Instruction) -> u8 {
-        let (addr, page_cross) = self.get_address(&instruction.memory_addressing_mode);
+        let (addr, _page_cross) = self.get_address(&instruction.memory_addressing_mode);
         let value = self.bus.read_byte(addr);
         let new_value = value.wrapping_add(1);
         self.bus.write_byte(addr, new_value);
@@ -433,7 +430,7 @@ impl CPU {
 
     fn jsr(&mut self, instruction: &Instruction) -> u8 {
         // so that the pc is incremented appropratiely
-        let (addr, page_cross) = self.get_address(&instruction.memory_addressing_mode);
+        let (addr, _page_cross) = self.get_address(&instruction.memory_addressing_mode);
 
         let return_point = self.program_counter - 1;
         self.push_word(return_point);
@@ -454,14 +451,14 @@ impl CPU {
     }
 
     fn ldx(&mut self, instruction: &Instruction) -> u8 {
-        let (x, page_cross) = self.read_byte(&instruction.memory_addressing_mode);
+        let (x, _page_cross) = self.read_byte(&instruction.memory_addressing_mode);
         self.x = x;
         self.set_negative_and_zero_process_status(self.x);
         instruction.cycle
     }
 
     fn ldy(&mut self, instruction: &Instruction) -> u8 {
-        let (y, page_cross) = self.read_byte(&instruction.memory_addressing_mode);
+        let (y, _page_cross) = self.read_byte(&instruction.memory_addressing_mode);
         self.y = y;
         self.set_negative_and_zero_process_status(self.y);
         instruction.cycle
@@ -872,7 +869,6 @@ impl CPU {
 
 #[cfg(test)]
 mod test {
-    use std::time::Duration;
 
     use super::super::rom::{Mirroring, Rom};
     use super::*;
