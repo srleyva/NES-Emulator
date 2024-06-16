@@ -13,7 +13,6 @@ use instructions::{
 };
 use processor_status::ProcessorStatus;
 
-
 const STACK: u16 = 0x0100;
 const OPCODE_EXIT: u8 = 0xf4;
 
