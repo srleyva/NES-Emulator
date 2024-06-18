@@ -1,6 +1,8 @@
+use crate::cpu::interrupt::InterruptType;
+
+#[cfg(test)]
 use crate::cpu::interrupt::{
-    InterruptType, IRQ_BRK_VECTOR, IRQ_BRK_VECTOR_END, NMI_VECTOR, NMI_VECTOR_END, RESET_VECTOR,
-    RESET_VECTOR_END,
+    IRQ_BRK_VECTOR, IRQ_BRK_VECTOR_END, NMI_VECTOR, NMI_VECTOR_END, RESET_VECTOR, RESET_VECTOR_END,
 };
 
 use super::ppu::{PPUValue, PPU};
@@ -51,7 +53,7 @@ impl MemoryBus {
         }
     }
 
-    pub fn write_byte(&mut self, mut address: u16, data: u8) {
+    pub fn write_byte(&mut self, address: u16, data: u8) {
         match address {
             RAM..=RAM_MIRRORS_END => {
                 let mirror_down_addr = address & 0b11111111111;
@@ -64,9 +66,9 @@ impl MemoryBus {
             IRQ_BRK_VECTOR..=IRQ_BRK_VECTOR_END
             | NMI_VECTOR..=NMI_VECTOR_END
             | RESET_VECTOR..=RESET_VECTOR_END => {
-                address -= 0x8000;
+                let address = (address - 0x8000) as usize;
                 assert!(
-                    address as usize <= self.prg_rom.len(),
+                    address <= self.prg_rom.len(),
                     "addr: {} len: {}",
                     address,
                     self.prg_rom.len()

@@ -1,7 +1,6 @@
 use codegen::Scope;
 use serde_json::{Result, Value};
 use std::collections::HashMap;
-use std::fmt::format;
 use std::fs::{read_to_string, write};
 use std::u8;
 

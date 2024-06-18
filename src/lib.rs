@@ -9,7 +9,7 @@ pub mod rom;
 extern crate bitflags;
 
 use bus::MemoryBus;
-use cpu::{processor_status::ProcessorStatus, CPU};
+use cpu::CPU;
 
 use rand::Rng;
 use rom::Rom;
