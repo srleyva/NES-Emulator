@@ -447,17 +447,25 @@ impl CPU {
     }
 
     fn ldx(&mut self, instruction: &Instruction) -> u8 {
-        let (x, _page_cross) = self.read_byte(&instruction.memory_addressing_mode);
+        let (x, page_cross) = self.read_byte(&instruction.memory_addressing_mode);
         self.x = x;
         self.set_negative_and_zero_process_status(self.x);
-        instruction.cycle
+        if page_cross {
+            instruction.cycle + 1
+        } else {
+            instruction.cycle
+        }
     }
 
     fn ldy(&mut self, instruction: &Instruction) -> u8 {
-        let (y, _page_cross) = self.read_byte(&instruction.memory_addressing_mode);
+        let (y, page_cross) = self.read_byte(&instruction.memory_addressing_mode);
         self.y = y;
         self.set_negative_and_zero_process_status(self.y);
-        instruction.cycle
+        if page_cross {
+            instruction.cycle + 1
+        } else {
+            instruction.cycle
+        }
     }
 
     fn lsr(&mut self, instruction: &Instruction) -> u8 {
@@ -483,11 +491,15 @@ impl CPU {
 
     fn nop(&mut self, instruction: &Instruction) -> u8 {
         // Account for illegal instructions
-        match instruction.memory_addressing_mode {
-            MemoryAdressingMode::Implied => (),
-            _ => (_, _) = self.read_byte(&instruction.memory_addressing_mode),
+        let (_, page_cross) = match instruction.memory_addressing_mode {
+            MemoryAdressingMode::Implied => (0, false),
+            _ => self.read_byte(&instruction.memory_addressing_mode),
+        };
+        if page_cross {
+            instruction.cycle + 1
+        } else {
+            instruction.cycle
         }
-        instruction.cycle
     }
 
     fn ora(&mut self, instruction: &Instruction) -> u8 {
@@ -735,6 +747,10 @@ impl CPU {
         (addr, boundary_cross)
     }
 
+    fn boundary_cross(base_addr: u16, offset_addr: u16) -> bool {
+        (base_addr & 0xFF00) != (offset_addr & 0xFF00)
+    }
+
     fn absolute_address(&mut self) -> (u16, bool) {
         (self.read_next_word(), false)
     }
@@ -742,13 +758,13 @@ impl CPU {
     fn absolute_x_address(&mut self) -> (u16, bool) {
         let (base_addr, _) = self.absolute_address();
         let addr = base_addr.wrapping_add(self.x as u16);
-        (addr as u16, addr & 0x00FF != base_addr & 0x00FF)
+        (addr, Self::boundary_cross(base_addr, addr))
     }
 
     fn absolute_y_address(&mut self) -> (u16, bool) {
         let base_addr = self.read_next_word();
         let addr = base_addr.wrapping_add(self.y as u16);
-        (addr as u16, addr & 0x00FF != base_addr & 0x00FF)
+        (addr, Self::boundary_cross(base_addr, addr))
     }
 
     fn zero_page_address(&mut self) -> (u16, bool) {
@@ -758,13 +774,19 @@ impl CPU {
     fn zero_page_x_address(&mut self) -> (u16, bool) {
         let base_addr = self.read_next_byte();
         let addr = base_addr.wrapping_add(self.x);
-        (addr as u16, addr & 0x00FF != base_addr & 0x00FF)
+        (
+            addr as u16,
+            Self::boundary_cross(base_addr as u16, addr as u16),
+        )
     }
 
     fn zero_page_y_address(&mut self) -> (u16, bool) {
         let base_addr = self.read_next_byte();
         let addr = base_addr.wrapping_add(self.y);
-        (addr as u16, addr & 0x00FF != base_addr & 0x00FF)
+        (
+            addr as u16,
+            Self::boundary_cross(base_addr as u16, addr as u16),
+        )
     }
 
     fn indirect_x_address(&mut self) -> (u16, bool) {
@@ -781,8 +803,7 @@ impl CPU {
         let hi = self.bus.read_byte((base as u8).wrapping_add(1) as u16);
         let deref_base = (hi as u16) << 8 | (lo as u16);
         let addr = deref_base.wrapping_add(self.y as u16);
-        let page_boundary_crossed = deref_base & 0xFF00 != (addr & 0xFF00);
-        return (addr, page_boundary_crossed);
+        (addr, Self::boundary_cross(deref_base, addr))
     }
 
     /*

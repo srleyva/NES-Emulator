@@ -113,7 +113,7 @@ pub const INSTRUCTION_SET: [Instruction; 255] = [
         "NOP",
         0xc,
         3,
-        3,
+        4,
         InstructionType::NOP,
         MemoryAdressingMode::Absolute,
         false
@@ -182,12 +182,12 @@ pub const INSTRUCTION_SET: [Instruction; 255] = [
         false
     ),
     instruction!(
-        "NotImplemented",
+        "NOP",
         0x14,
-        0,
-        0,
-        InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate,
+        2,
+        4,
+        InstructionType::NOP,
+        MemoryAdressingMode::ZeroPageX,
         false
     ),
     instruction!(
@@ -470,12 +470,12 @@ pub const INSTRUCTION_SET: [Instruction; 255] = [
         false
     ),
     instruction!(
-        "NotImplemented",
+        "NOP",
         0x34,
-        0,
-        0,
-        InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate,
+        2,
+        4,
+        InstructionType::NOP,
+        MemoryAdressingMode::ZeroPageX,
         false
     ),
     instruction!(
@@ -614,12 +614,12 @@ pub const INSTRUCTION_SET: [Instruction; 255] = [
         false
     ),
     instruction!(
-        "NotImplemented",
+        "NOP",
         0x44,
-        0,
-        0,
-        InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate,
+        2,
+        3,
+        InstructionType::NOP,
+        MemoryAdressingMode::ZeroPage,
         false
     ),
     instruction!(
@@ -758,12 +758,12 @@ pub const INSTRUCTION_SET: [Instruction; 255] = [
         false
     ),
     instruction!(
-        "NotImplemented",
+        "NOP",
         0x54,
-        0,
-        0,
-        InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate,
+        2,
+        4,
+        InstructionType::NOP,
+        MemoryAdressingMode::ZeroPageX,
         false
     ),
     instruction!(
@@ -902,12 +902,12 @@ pub const INSTRUCTION_SET: [Instruction; 255] = [
         false
     ),
     instruction!(
-        "NotImplemented",
+        "NOP",
         0x64,
-        0,
-        0,
-        InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate,
+        2,
+        3,
+        InstructionType::NOP,
+        MemoryAdressingMode::ZeroPage,
         false
     ),
     instruction!(
@@ -1046,12 +1046,12 @@ pub const INSTRUCTION_SET: [Instruction; 255] = [
         false
     ),
     instruction!(
-        "NotImplemented",
+        "NOP",
         0x74,
-        0,
-        0,
-        InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate,
+        2,
+        4,
+        InstructionType::NOP,
+        MemoryAdressingMode::ZeroPageX,
         false
     ),
     instruction!(
@@ -1910,12 +1910,12 @@ pub const INSTRUCTION_SET: [Instruction; 255] = [
         false
     ),
     instruction!(
-        "NotImplemented",
+        "NOP",
         0xd4,
-        0,
-        0,
-        InstructionType::NotImplemented,
-        MemoryAdressingMode::Immediate,
+        2,
+        4,
+        InstructionType::NOP,
+        MemoryAdressingMode::ZeroPageX,
         false
     ),
     instruction!(
