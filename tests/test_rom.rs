@@ -58,6 +58,7 @@ impl CPURecorder {
                 u8::from_str_radix(&state_parts[3][2..4], 16).unwrap(),
             );
             let stack_pointer = u8::from_str_radix(&state_parts[4][3..5], 16).unwrap();
+            let cycle = u64::from_str_radix(&state_parts.last().unwrap()[4..], 10).unwrap();
 
             expected_cpu_state.push_back(CPU {
                 program_counter,
@@ -67,6 +68,7 @@ impl CPURecorder {
                 processor_status,
                 stack_pointer,
                 bus: test_rom(),
+                cycle,
             })
         }
         // State has to be one ahead
@@ -106,6 +108,12 @@ impl CPURecorder {
             expected.program_counter, cpu.processor_status, expected.processor_status
         );
 
+        assert_eq!(
+            cpu.cycle, expected.cycle,
+            "Cycle count not as expected\nexp: {} act:{}",
+            expected.cycle, cpu.cycle
+        );
+
         self.count += 1;
     }
 
@@ -140,6 +148,7 @@ fn test_cpu() {
         0,
         0,
         ProcessorStatus::from_bits_truncate(0x24),
+        7,
     );
 
     let mut cpu_recorder = CPURecorder::new_from_nes_log("./tests/nestest.log");

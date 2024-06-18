@@ -25,6 +25,7 @@ pub struct CPU {
     pub y: u8,
     pub processor_status: ProcessorStatus,
     pub bus: MemoryBus,
+    pub cycle: u64,
 }
 
 impl PartialEq for CPU {
@@ -40,19 +41,20 @@ impl Eq for CPU {}
 
 impl std::fmt::Display for CPU {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Registers: a=[{:#04X?}] x=[{:#04X?}] y=[{:#04X?}] StackPointer=[{:#04X?}] ProgramCounter=[{:#04X?} ProcessorStatus=[{}]]", self.a, self.x, self.y, self.stack_pointer, self.program_counter, self.processor_status)
+        write!(f, "Registers: a=[{:#04X?}] x=[{:#04X?}] y=[{:#04X?}] StackPointer=[{:#04X?}] ProgramCounter=[{:#04X?} ProcessorStatus=[{}] Cycle=[{}]]", self.a, self.x, self.y, self.stack_pointer, self.program_counter, self.processor_status, self.cycle)
     }
 }
 
 impl Debug for CPU {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "Registers: a=[{:#04X?}] x=[{:#04X?}] y=[{:#04X?}] StackPointer=[{:#04X?}] ProgramCounter=[{:#04X?} ProcessorStatus=[{}]]", self.a, self.x, self.y, self.stack_pointer, self.program_counter, self.processor_status)
+        write!(f, "Registers: a=[{:#04X?}] x=[{:#04X?}] y=[{:#04X?}] StackPointer=[{:#04X?}] ProgramCounter=[{:#04X?} ProcessorStatus=[{}] Cycle=[{}]]", self.a, self.x, self.y, self.stack_pointer, self.program_counter, self.processor_status, self.cycle)
     }
 }
 
 impl CPU {
     pub fn new(rom: MemoryBus) -> Self {
-        let mut cpu = Self::new_with_state(rom, 0x8000, 0xFD, 0, 0, 0, ProcessorStatus::default());
+        let mut cpu =
+            Self::new_with_state(rom, 0x8000, 0xFD, 0, 0, 0, ProcessorStatus::default(), 0);
         cpu.reset_cpu();
         cpu
     }
@@ -65,6 +67,7 @@ impl CPU {
         x: u8,
         y: u8,
         processor_status: ProcessorStatus,
+        cycle: u64,
     ) -> Self {
         let cpu = Self {
             program_counter,
@@ -74,6 +77,7 @@ impl CPU {
             y,
             processor_status,
             bus: rom,
+            cycle,
         };
         cpu
     }
@@ -162,6 +166,7 @@ impl CPU {
                 }
             };
 
+            self.cycle += cycles as u64;
             callback(self, instruction);
             if self.processor_status.contains(ProcessorStatus::BREAK) {
                 self.interrupt(&BRK);
@@ -517,7 +522,7 @@ impl CPU {
         self.processor_status = ProcessorStatus::from_bits_truncate(self.pop());
         self.processor_status.remove(ProcessorStatus::BREAK);
         self.processor_status.insert(ProcessorStatus::BREAK2);
-        instruction.bytes
+        instruction.cycle
     }
 
     fn rol(&mut self, instruction: &Instruction) -> u8 {
