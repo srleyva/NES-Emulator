@@ -249,43 +249,35 @@ impl CPU {
     }
 
     fn bcc(&mut self, instruction: &Instruction) -> u8 {
-        self.branch(!self.processor_status.contains(ProcessorStatus::CARRY));
-        instruction.cycle
+        self.branch(!self.processor_status.contains(ProcessorStatus::CARRY)) + instruction.cycle
     }
 
     fn bcs(&mut self, instruction: &Instruction) -> u8 {
-        self.branch(self.processor_status.contains(ProcessorStatus::CARRY));
-        instruction.cycle
+        self.branch(self.processor_status.contains(ProcessorStatus::CARRY)) + instruction.cycle
     }
 
     fn beq(&mut self, instruction: &Instruction) -> u8 {
-        self.branch(self.processor_status.contains(ProcessorStatus::ZERO));
-        instruction.cycle
+        self.branch(self.processor_status.contains(ProcessorStatus::ZERO)) + instruction.cycle
     }
 
     fn bmi(&mut self, instruction: &Instruction) -> u8 {
-        self.branch(self.processor_status.contains(ProcessorStatus::NEGATIVE));
-        instruction.cycle
+        self.branch(self.processor_status.contains(ProcessorStatus::NEGATIVE)) + instruction.cycle
     }
 
     fn bne(&mut self, instruction: &Instruction) -> u8 {
-        self.branch(!self.processor_status.contains(ProcessorStatus::ZERO));
-        instruction.cycle
+        self.branch(!self.processor_status.contains(ProcessorStatus::ZERO)) + instruction.cycle
     }
 
     fn bpl(&mut self, instruction: &Instruction) -> u8 {
-        self.branch(!self.processor_status.contains(ProcessorStatus::NEGATIVE));
-        instruction.cycle
+        self.branch(!self.processor_status.contains(ProcessorStatus::NEGATIVE)) + instruction.cycle
     }
 
     fn bvc(&mut self, instruction: &Instruction) -> u8 {
-        self.branch(!self.processor_status.contains(ProcessorStatus::OVERFLOW));
-        instruction.cycle
+        self.branch(!self.processor_status.contains(ProcessorStatus::OVERFLOW)) + instruction.cycle
     }
 
     fn bvs(&mut self, instruction: &Instruction) -> u8 {
-        self.branch(self.processor_status.contains(ProcessorStatus::OVERFLOW));
-        instruction.cycle
+        self.branch(self.processor_status.contains(ProcessorStatus::OVERFLOW)) + instruction.cycle
     }
 
     fn bit(&mut self, instruction: &Instruction) -> u8 {
@@ -683,7 +675,7 @@ impl CPU {
     */
 
     fn read_byte(&mut self, memory_addressing_mode: &MemoryAdressingMode) -> (u8, bool) {
-        let (byte, page_cross) = match memory_addressing_mode {
+        let (byte, mut page_cross) = match memory_addressing_mode {
             MemoryAdressingMode::Accumulator => (self.a, false),
             MemoryAdressingMode::Immediate => (self.read_next_byte(), false),
             _ => {
@@ -692,6 +684,14 @@ impl CPU {
             }
         };
 
+        if !matches!(
+            memory_addressing_mode,
+            MemoryAdressingMode::AbsoluteX
+                | MemoryAdressingMode::AbsoluteY
+                | MemoryAdressingMode::IndirectY
+        ) {
+            page_cross = false
+        }
         (byte, page_cross)
     }
 
@@ -789,11 +789,18 @@ impl CPU {
         self.set_negative_and_zero_process_status(register.wrapping_sub(value))
     }
 
-    fn branch(&mut self, jump: bool) {
+    fn branch(&mut self, jump: bool) -> u8 {
+        let mut cycle_count = 0;
         let offset = self.read_next_byte() as i8;
         if jump {
+            cycle_count += 1;
+            let old_pc = self.program_counter;
             self.program_counter = self.program_counter.wrapping_add(offset as u16);
+            if (old_pc & 0xFF00) != (self.program_counter & 0xFF00) {
+                cycle_count += 1;
+            }
         }
+        cycle_count
     }
 
     fn add(&mut self, reg_value: u8, data: u8) -> u8 {
