@@ -247,13 +247,14 @@ impl PPU {
         }
     }
 
-    fn write_data(&mut self, _data: PPUValue) {
+    fn write_data(&mut self, data: PPUValue) {
         let address: PPUAddress = self.address.get().into();
         self.address.increment(self.ctrl.vram_addr_increment());
 
         match address {
-            PPUAddress::CHRROM(_addr) => {}
-            PPUAddress::RAM(_addr) => {}
+            PPUAddress::RAM(addr) => {
+                self.vram[self.mirror_vram_addr(addr) as usize] = data;
+            }
             _ => panic!("Write on {:?} not supported", address),
         }
     }
