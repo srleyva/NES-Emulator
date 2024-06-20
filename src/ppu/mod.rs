@@ -253,7 +253,7 @@ impl PPU {
 
         match address {
             PPUAddress::RAM(addr) => {
-                self.vram[self.mirror_vram_addr(addr) as usize] = data;
+                self.vram[self.mirror_vram_addr(addr) as usize] = data.into();
             }
             _ => panic!("Write on {:?} not supported", address),
         }
